@@ -1,42 +1,79 @@
-import { Marker, InfoWindow, OverlayView } from "@react-google-maps/api";
+import { InfoWindow, OverlayView } from "@react-google-maps/api";
+import { useEffect, useRef } from "react";
 
-function RestaurantMarkers({ restaurants, selectedRestaurant, setSelectedRestaurant }) {
+function RestaurantMarkers({ restaurants, selectedRestaurant, setSelectedRestaurant, map }) {
+  const markersRef = useRef([]);
+
+  useEffect(() => {
+    // Clean up existing markers
+    markersRef.current.forEach(marker => {
+      if (marker.map) {
+        marker.map = null;
+      }
+    });
+    markersRef.current = [];
+
+    // Create new AdvancedMarkerElements
+    if (map && window.google && window.google.maps && window.google.maps.marker) {
+      restaurants.forEach((restaurant) => {
+        const location = restaurant.geometry.location;
+        const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+        const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+
+        const marker = new window.google.maps.marker.AdvancedMarkerElement({
+          map: map,
+          position: { lat, lng },
+          title: restaurant.name,
+        });
+
+        // Add click listener using gmp-click for AdvancedMarkerElement
+        marker.addListener('gmp-click', () => {
+          setSelectedRestaurant(restaurant);
+        });
+
+        markersRef.current.push(marker);
+      });
+    }
+
+    return () => {
+      // Cleanup on unmount
+      markersRef.current.forEach(marker => {
+        if (marker.map) {
+          marker.map = null;
+        }
+      });
+    };
+  }, [restaurants, setSelectedRestaurant, map]);
+
   return (
     <>
-      {/* Restaurant markers - red pinpoint markers with labels */}
+      {/* Restaurant name labels */}
       {restaurants.map((restaurant) => {
         const location = restaurant.geometry.location;
         const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
         const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
         
         return (
-          <div key={restaurant.place_id}>
-            <Marker
-              position={{ lat, lng }}
-              title={restaurant.name}
-              onClick={() => setSelectedRestaurant(restaurant)}
-              zIndex={500}
-            />
-            <OverlayView
-              position={{ lat, lng }}
-              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          <OverlayView
+            key={restaurant.place_id}
+            position={{ lat, lng }}
+            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          >
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: 'black',
+                textShadow: '1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white',
+                transform: 'translate(-70%, -50px)',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                textAlign: 'left',
+              }}
             >
-              <div
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  color: 'black',
-                  textShadow: '1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white',
-                  transform: 'translate(-50%, -35px)',
-                  whiteSpace: 'nowrap',
-                  pointerEvents: 'none',
-                  textAlign: 'center',
-                }}
-              >
-                {restaurant.name}
-              </div>
-            </OverlayView>
-          </div>
+              {restaurant.name}
+            </div>
+          </OverlayView>
         );
       })}
       

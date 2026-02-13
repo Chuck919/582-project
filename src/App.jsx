@@ -1,5 +1,5 @@
-import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api";
-import { useEffect, useState } from "react";
+import { GoogleMap, useLoadScript } from "@react-google-maps/api";
+import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 
 const containerStyle = {
@@ -7,7 +7,7 @@ const containerStyle = {
   height: "100vh",
 };
 
-const libraries = ["places"];
+const libraries = ["places", "marker"];
 
 function App() {
   const [currentPosition, setCurrentPosition] = useState(null);
@@ -15,6 +15,7 @@ function App() {
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const userMarkerRef = useRef(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -35,6 +36,38 @@ function App() {
     );
   }, []);
 
+  // Create user location marker with AdvancedMarkerElement
+  useEffect(() => {
+    if (map && currentPosition && window.google && window.google.maps && window.google.maps.marker) {
+      // Clean up existing marker
+      if (userMarkerRef.current) {
+        userMarkerRef.current.map = null;
+      }
+
+      // Create custom blue dot element
+      const pinElement = document.createElement('div');
+      pinElement.style.width = '16px';
+      pinElement.style.height = '16px';
+      pinElement.style.backgroundColor = '#4285F4';
+      pinElement.style.border = '2px solid white';
+      pinElement.style.borderRadius = '50%';
+      pinElement.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+
+      userMarkerRef.current = new window.google.maps.marker.AdvancedMarkerElement({
+        map: map,
+        position: currentPosition,
+        content: pinElement,
+        title: 'Your Location',
+      });
+    }
+
+    return () => {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.map = null;
+      }
+    };
+  }, [map, currentPosition]);
+
   useEffect(() => {
     if (map && currentPosition && !hasSearched) {
       // Check cache first
@@ -51,64 +84,52 @@ function App() {
       console.log("Searching for restaurants near:", currentPosition);
       console.log("API Key exists:", !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
       
-      const service = new window.google.maps.places.PlacesService(map);
-      const allResults = [];
-      
+      // Using new Place API instead of deprecated PlacesService
       const request = {
-        location: currentPosition,
-        radius: 10000, // 10km radius to get more restaurants
-        type: "restaurant",
+        fields: ['id', 'displayName', 'formattedAddress', 'location'],
+        locationRestriction: {
+          center: currentPosition,
+          radius: 10000, // 10km radius
+        },
+        includedTypes: ["restaurant"],
+        maxResultCount: 20,
       };
 
       console.log("Making Places API request:", request);
 
-      const handleResults = (results, status, pagination) => {
-        console.log("Places API Status:", status);
-        
-        if (status === window.google.maps.places.PlacesServiceStatus.OK) {
-          allResults.push(...results);
-          console.log(`Found ${results.length} restaurants (Total: ${allResults.length})`);
+      // Use the new searchNearby method
+      window.google.maps.places.Place.searchNearby(request)
+        .then(response => {
+          console.log("Places API response:", response);
+          const { places } = response;
           
-          // Get more results if available (up to 60 total - 3 pages)
-          if (pagination && pagination.hasNextPage && allResults.length < 60) {
-            setTimeout(() => {
-              pagination.nextPage();
-            }, 2000); // Required delay between pagination requests
-          } else {
-            // Done fetching all results
-            console.log(`Final total: ${allResults.length} restaurants`);
-            setRestaurants(allResults);
-            // Cache the results (convert to plain objects)
-            const cacheData = allResults.map(r => ({
-              place_id: r.place_id,
-              name: r.name,
-              vicinity: r.vicinity,
+          if (places && places.length > 0) {
+            console.log(`Found ${places.length} restaurants`);
+            
+            // Convert new Place objects to format compatible with existing code
+            const formattedResults = places.map(place => ({
+              place_id: place.id,
+              name: place.displayName,
+              vicinity: place.formattedAddress,
               geometry: {
                 location: {
-                  lat: r.geometry.location.lat(),
-                  lng: r.geometry.location.lng()
+                  lat: place.location.lat(),
+                  lng: place.location.lng()
                 }
               }
             }));
-            sessionStorage.setItem(cacheKey, JSON.stringify(cacheData));
-            setHasSearched(true);
+            
+            setRestaurants(formattedResults);
+            sessionStorage.setItem(cacheKey, JSON.stringify(formattedResults));
+          } else {
+            console.log("No restaurants found in this area");
           }
-        } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-          console.log("No restaurants found in this area");
           setHasSearched(true);
-        } else if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
-          console.error("REQUEST_DENIED - Check if Places API is enabled in Google Cloud Console");
+        })
+        .catch(error => {
+          console.error("Places search failed:", error);
           setHasSearched(true);
-        } else if (status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
-          console.error("OVER_QUERY_LIMIT - API quota exceeded");
-          setHasSearched(true);
-        } else {
-          console.error("Places search failed with status:", status);
-          setHasSearched(true);
-        }
-      };
-
-      service.nearbySearch(request, handleResults);
+        });
     }
   }, [map, currentPosition, hasSearched]);
 
@@ -140,35 +161,18 @@ function App() {
         onLoad={onMapLoad}
         onClick={() => setSelectedRestaurant(null)}
         options={{
+          mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
           disableDefaultUI: false,
-          styles: [
-            {
-              featureType: "poi.business",
-              elementType: "all",
-              stylers: [{ visibility: "off" }],
-            },
-          ],
         }}
       >
-      {/* User location marker - small blue dot */}
-      <Marker 
-        position={currentPosition}
-        icon={{
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: "#4285F4",
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 2,
-        }}
-        zIndex={1000}
-      />
+      {/* User location marker now handled by AdvancedMarkerElement in useEffect */}
       
       {/* Restaurant markers component */}
       <RestaurantMarkers 
         restaurants={restaurants} 
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
+        map={map}
       />
     </GoogleMap>
     </>
