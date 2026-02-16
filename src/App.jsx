@@ -86,7 +86,7 @@ function App() {
       
       // Using new Place API instead of deprecated PlacesService
       const request = {
-        fields: ['id', 'displayName', 'formattedAddress', 'location'],
+        fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating'],
         locationRestriction: {
           center: currentPosition,
           radius: 10000, // 10km radius
@@ -116,7 +116,9 @@ function App() {
                   lat: place.location.lat(),
                   lng: place.location.lng()
                 }
-              }
+              },
+              rating: place.rating,
+              types: place.types
             }));
             
             setRestaurants(formattedResults);
