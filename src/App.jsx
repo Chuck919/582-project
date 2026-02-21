@@ -1,6 +1,7 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
+import AuthHeader from "./components/AuthHeader";
 
 const containerStyle = {
   width: "100vw",
@@ -146,13 +147,21 @@ function App() {
         top: "10px",
         right: "10px",
         zIndex: 1000,
-        background: "white",
-        padding: "10px",
-        borderRadius: "5px",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-        color: "black"
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
       }}>
-        Restaurants found: {restaurants.length}
+        <AuthHeader />
+        <div style={{
+          background: "white",
+          padding: "10px 14px",
+          borderRadius: "8px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+          color: "#1e293b",
+          fontSize: "14px",
+        }}>
+          Restaurants found: {restaurants.length}
+        </div>
       </div>
       <GoogleMap
         mapContainerStyle={containerStyle}
