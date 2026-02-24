@@ -1,11 +1,15 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
+import { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
 const containerStyle = {
   width: "100vw",
   height: "100vh",
 };
+
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
 const libraries = ["places", "marker"];
 
@@ -16,7 +20,7 @@ function App() {
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const userMarkerRef = useRef(null);
-
+  const [instruments, setInstruments] = useState([]);
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
@@ -35,6 +39,17 @@ function App() {
       }
     );
   }, []);
+
+  // Supabase
+  useEffect(() => {
+    getInstruments();
+  }, []);
+
+  async function getInstruments() {
+    const { data } = await supabase.from("instruments").select();
+    setInstruments(data);
+  }
+
 
   // Create user location marker with AdvancedMarkerElement
   useEffect(() => {
@@ -143,6 +158,12 @@ function App() {
 
   return (
     <>
+      {/* <ul>
+        {instruments.map((instrument) => (
+          <li key={instrument.name}>{instrument.name}</li>
+        ))}
+      </ul> */}
+      
       <div style={{
         position: "absolute",
         top: "10px",
@@ -178,6 +199,7 @@ function App() {
       />
     </GoogleMap>
     </>
+  
   );
 }
 
