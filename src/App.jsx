@@ -2,7 +2,7 @@ import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
-import supabase from "./libs/supabase";
+import { supabase } from "./lib/supabase";
 
 const containerStyle = {
   width: "100vw",
@@ -14,6 +14,7 @@ const libraries = ["places", "marker"];
 function App() {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
+  const [deals, setDeals] = useState({});
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -33,18 +34,49 @@ function App() {
         });
       },
       (error) => {
-        console.error("Error getting location:", error);
-      }
+        if (error.code === 1) {
+          console.error('User denied location permission');
+        } else if (error.code === 2) {
+          console.error('Location unavailable (VPN, Wi-Fi, or OS issue)');
+        } else if (error.code === 3) {
+      console.error('Location request timed out')
+    }
+  }
     );
   }, []);
 
+  // Fetch deals from Supabase
   useEffect(() => {
+    const fetchDeals = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('deals')
+          .select('*');
+
+        if (error) {
+          console.error('Error fetching deals:', error);
+          // Don't set deals if there's an error, keep empty object
+          return;
+        }
+
+        // Group deals by restaurant ID
+        const dealsByRestaurant = {};
+        data.forEach(deal => {
+          if (!dealsByRestaurant[deal.restaurant_id]) {
+            dealsByRestaurant[deal.restaurant_id] = [];
+          }
+          dealsByRestaurant[deal.restaurant_id].push(deal);
+        });
+
+        setDeals(dealsByRestaurant);
+        console.log('Fetched deals:', dealsByRestaurant);
+      } catch (error) {
+        console.error('Error fetching deals:', error);
+      }
+    };
+
+    fetchDeals();
   }, []);
-
-  async function getInstruments() {
-    setInstruments();
-  }
-
 
   // Create user location marker with AdvancedMarkerElement
   useEffect(() => {
@@ -153,12 +185,6 @@ function App() {
 
   return (
     <>
-      {/* <ul>
-        {instruments.map((instrument) => (
-          <li key={instrument.name}>{instrument.name}</li>
-        ))}
-      </ul> */}
-      
       <div style={{
         position: "absolute",
         top: "10px",
@@ -199,6 +225,7 @@ function App() {
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
+        deals={deals}
       />
     </GoogleMap>
     </>

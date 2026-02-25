@@ -1,7 +1,7 @@
 import React from "react";
 import "./RestaurantInfoModal.css";
 
-function RestaurantInfoModal({ restaurant, onClose }) {
+function RestaurantInfoModal({ restaurant, onClose, deals }) {
   if (!restaurant) return null;
 
   const filteredTypes = restaurant.types
@@ -26,6 +26,25 @@ function RestaurantInfoModal({ restaurant, onClose }) {
         <h2>{restaurant.name}</h2>
         <p>Rating: {restaurant.rating || "N/A"}</p>
         <p>Cuisine: {filteredTypes || "N/A"}</p>
+        
+        {deals && deals.length > 0 && (
+          <div className="deals-section">
+            <h3>Current Deals</h3>
+            {deals.map((deal) => (
+              <div key={deal.deal_id} className="deal-item">
+                <p><strong>{deal.description}</strong></p>
+                {deal.expiry_date && (
+                  <p>Expires: {new Date(deal.expiry_date).toLocaleDateString()}</p>
+                )}
+                {deal.terms && <p>Terms: {deal.terms}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {deals && deals.length === 0 && (
+          <p>No current deals available.</p>
+        )}
       </div>
     </div>
   );
