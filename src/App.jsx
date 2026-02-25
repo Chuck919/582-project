@@ -2,13 +2,12 @@ import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
+import supabase from "./libs/supabase";
 
 const containerStyle = {
   width: "100vw",
   height: "100vh",
 };
-
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
 
 const libraries = ["places", "marker"];
 
@@ -39,14 +38,11 @@ function App() {
     );
   }, []);
 
-  // Supabase
   useEffect(() => {
-    getInstruments();
   }, []);
 
   async function getInstruments() {
-    const { data } = await supabase.from("instruments").select();
-    setInstruments(data);
+    setInstruments();
   }
 
 
