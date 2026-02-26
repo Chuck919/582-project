@@ -1,0 +1,151 @@
+/* ── Container ─────────────────────────────────────────────── */
+.search-container {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  font-family: "Google Sans", Roboto, Arial, sans-serif;
+}
+
+/* ── Form row ───────────────────────────────────────────────── */
+.search-form {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── Input wrapper (holds input + clear ×) ──────────────────── */
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 36px 10px 14px; /* right padding leaves room for × */
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  outline: none;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s;
+}
+
+.search-input:focus {
+  box-shadow: 0 2px 10px rgba(66, 133, 244, 0.55);
+}
+
+.search-clear-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #888;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+
+.search-clear-button:hover {
+  color: #333;
+}
+
+/* ── Submit button ──────────────────────────────────────────── */
+.search-button {
+  padding: 10px 16px;
+  background: #4285f4;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: background 0.15s;
+}
+
+.search-button:hover:not(:disabled) {
+  background: #3367d6;
+}
+
+.search-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Results panel ──────────────────────────────────────────── */
+.search-results {
+  margin-top: 6px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* ── Individual result ──────────────────────────────────────── */
+.search-result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.12s;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover,
+.search-result-item:focus {
+  background: #f1f3f4;
+  outline: none;
+}
+
+.result-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #202124;
+}
+
+.result-address {
+  font-size: 12px;
+  color: #70757a;
+}
+
+.result-rating {
+  font-size: 12px;
+  color: #f5a623;
+  font-weight: 500;
+}
+
+/* ── Empty / loading states ─────────────────────────────────── */
+.no-results {
+  padding: 14px;
+  font-size: 14px;
+  color: #70757a;
+  text-align: center;
+}
+
+.search-loading {
+  margin-top: 6px;
+  padding: 10px 14px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+  color: #70757a;
+  text-align: center;
+}
