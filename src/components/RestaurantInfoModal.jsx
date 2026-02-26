@@ -1,7 +1,8 @@
 import React from "react";
 import "./RestaurantInfoModal.css";
+import DealForm from "./DealForm";
 
-function RestaurantInfoModal({ restaurant, onClose, deals }) {
+function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
   if (!restaurant) return null;
 
   const filteredTypes = restaurant.types
@@ -45,6 +46,18 @@ function RestaurantInfoModal({ restaurant, onClose, deals }) {
         {deals && deals.length === 0 && (
           <p>No current deals available.</p>
         )}
+
+        {/* allow users to submit their own deal for this restaurant */}
+        <div className="deal-form-section">
+          <h3>Submit a Deal</h3>
+          <DealForm
+            restaurantId={restaurant.place_id}
+            onSuccess={(deal) => {
+              // bubble event up to parent so it can refresh its data
+              onDealAdded?.(deal);
+            }}
+          />
+        </div>
       </div>
     </div>
   );

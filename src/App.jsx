@@ -46,35 +46,34 @@ function App() {
   }, []);
 
   // Fetch deals from Supabase
-  useEffect(() => {
-    const fetchDeals = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('deals')
-          .select('*');
+  // helper so other components can trigger a reload after adding a deal
+  const fetchDeals = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .select('*');
 
-        if (error) {
-          console.error('Error fetching deals:', error);
-          // Don't set deals if there's an error, keep empty object
-          return;
-        }
-
-        // Group deals by restaurant ID
-        const dealsByRestaurant = {};
-        data.forEach(deal => {
-          if (!dealsByRestaurant[deal.restaurant_id]) {
-            dealsByRestaurant[deal.restaurant_id] = [];
-          }
-          dealsByRestaurant[deal.restaurant_id].push(deal);
-        });
-
-        setDeals(dealsByRestaurant);
-        console.log('Fetched deals:', dealsByRestaurant);
-      } catch (error) {
+      if (error) {
         console.error('Error fetching deals:', error);
+        return;
       }
-    };
 
+      const dealsByRestaurant = {};
+      data.forEach((deal) => {
+        if (!dealsByRestaurant[deal.restaurant_id]) {
+          dealsByRestaurant[deal.restaurant_id] = [];
+        }
+        dealsByRestaurant[deal.restaurant_id].push(deal);
+      });
+
+      setDeals(dealsByRestaurant);
+      console.log('Fetched deals:', dealsByRestaurant);
+    } catch (error) {
+      console.error('Error fetching deals:', error);
+    }
+  };
+
+  useEffect(() => {
     fetchDeals();
   }, []);
 
@@ -226,6 +225,7 @@ function App() {
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
         deals={deals}
+        refreshDeals={fetchDeals} // pass callback to child/modal
       />
     </GoogleMap>
     </>

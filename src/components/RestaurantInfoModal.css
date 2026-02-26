@@ -54,3 +54,14 @@
   margin: 5px 0;
   font-size: 14px;
 }
+/* additional styling for the form that appears in the modal */
+.deal-form-section {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.deal-form-section h3 {
+  margin-bottom: 10px;
+  color: #003F88;
+  font-size: 1.1rem;
+}
