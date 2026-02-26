@@ -131,6 +131,25 @@
   font-weight: 500;
 }
 
+/* ── Autocomplete spinner ───────────────────────────────────── */
+.search-spinner {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border: 2px solid #d0d0d0;
+  border-top-color: #4285f4;
+  border-radius: 50%;
+  animation: search-spin 0.6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes search-spin {
+  to { transform: translateY(-50%) rotate(360deg); }
+}
+
 /* ── Empty / loading states ─────────────────────────────────── */
 .no-results {
   padding: 14px;

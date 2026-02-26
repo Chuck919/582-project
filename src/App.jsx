@@ -227,6 +227,7 @@ function App() {
         results={searchResults}
         isSearching={isSearching}
         onResultSelect={handleResultSelect}
+        currentPosition={currentPosition}
       />
 
       <div style={{
