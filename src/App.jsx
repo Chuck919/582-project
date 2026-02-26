@@ -1,6 +1,7 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
+import SearchBar from "./components/SearchBar";
 
 const containerStyle = {
   width: "100vw",
@@ -9,12 +10,25 @@ const containerStyle = {
 
 const libraries = ["places", "marker"];
 
+/**
+ * Sanitize helper — strips HTML and characters that could be used for
+ * XSS or injection before sending input to the Google Places API.
+ */
+function sanitize(input) {
+  return input
+    .replace(/<[^>]*>/g, "")
+    .replace(/[<>"'`;]/g, "")
+    .trim();
+}
+
 function App() {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   const userMarkerRef = useRef(null);
 
   const { isLoaded } = useLoadScript({
@@ -139,10 +153,83 @@ function App() {
     setMap(mapInstance);
   };
 
+  /** Search restaurants by name using the Places Text Search API. */
+  const handleSearch = useCallback(
+    (rawQuery) => {
+      const query = sanitize(rawQuery);
+      if (!query || !map || !currentPosition || !window.google) return;
+
+      setIsSearching(true);
+      setSearchResults([]);
+
+      const request = {
+        textQuery: query,
+        fields: ["id", "displayName", "formattedAddress", "location", "types", "rating"],
+        locationBias: {
+          center: currentPosition,
+          radius: 10000, // 10 km bias
+        },
+        includedType: "restaurant",
+        maxResultCount: 10,
+      };
+
+      window.google.maps.places.Place.searchByText(request)
+        .then((response) => {
+          const { places } = response;
+          if (places && places.length > 0) {
+            const formatted = places.map((place) => ({
+              place_id: place.id,
+              name: place.displayName,
+              vicinity: place.formattedAddress,
+              geometry: {
+                location: {
+                  lat: place.location.lat(),
+                  lng: place.location.lng(),
+                },
+              },
+              rating: place.rating,
+              types: place.types,
+            }));
+            setSearchResults(formatted);
+          } else {
+            setSearchResults([]);
+          }
+        })
+        .catch((err) => {
+          console.error("Restaurant search failed:", err);
+          setSearchResults([]);
+        })
+        .finally(() => setIsSearching(false));
+    },
+    [map, currentPosition]
+  );
+
+  /** Pan map to selected result and open the info modal. */
+  const handleResultSelect = useCallback(
+    (restaurant) => {
+      if (map) {
+        map.panTo(restaurant.geometry.location);
+        map.setZoom(16);
+      }
+      setSelectedRestaurant(restaurant);
+      setSearchResults([]);
+    },
+    [map]
+  );
+
   if (!isLoaded || !currentPosition) return <div>Loading...</div>;
 
   return (
     <>
+      {/* Search bar — centred at the top of the map */}
+      <SearchBar
+        onSearch={handleSearch}
+        results={searchResults}
+        isSearching={isSearching}
+        onResultSelect={handleResultSelect}
+        currentPosition={currentPosition}
+      />
+
       <div style={{
         position: "absolute",
         top: "10px",
