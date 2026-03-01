@@ -158,6 +158,11 @@
   text-align: center;
 }
 
+.out-of-area-message {
+  color: #b05a00;
+  background: #fff8f0;
+}
+
 .search-loading {
   margin-top: 6px;
   padding: 10px 14px;

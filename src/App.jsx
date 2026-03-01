@@ -153,55 +153,21 @@ function App() {
     setMap(mapInstance);
   };
 
-  /** Search restaurants by name using the Places Text Search API. */
+  /**
+   * Search restaurants by filtering the already-fetched nearby list.
+   * Only restaurants surfaced by the initial proximity heuristic are returned.
+   */
   const handleSearch = useCallback(
     (rawQuery) => {
       const query = sanitize(rawQuery);
-      if (!query || !map || !currentPosition || !window.google) return;
-
-      setIsSearching(true);
-      setSearchResults([]);
-
-      const request = {
-        textQuery: query,
-        fields: ["id", "displayName", "formattedAddress", "location", "types", "rating"],
-        locationBias: {
-          center: currentPosition,
-          radius: 10000, // 10 km bias
-        },
-        includedType: "restaurant",
-        maxResultCount: 10,
-      };
-
-      window.google.maps.places.Place.searchByText(request)
-        .then((response) => {
-          const { places } = response;
-          if (places && places.length > 0) {
-            const formatted = places.map((place) => ({
-              place_id: place.id,
-              name: place.displayName,
-              vicinity: place.formattedAddress,
-              geometry: {
-                location: {
-                  lat: place.location.lat(),
-                  lng: place.location.lng(),
-                },
-              },
-              rating: place.rating,
-              types: place.types,
-            }));
-            setSearchResults(formatted);
-          } else {
-            setSearchResults([]);
-          }
-        })
-        .catch((err) => {
-          console.error("Restaurant search failed:", err);
-          setSearchResults([]);
-        })
-        .finally(() => setIsSearching(false));
+      if (!query) return;
+      const queryLower = query.toLowerCase();
+      const filtered = restaurants.filter((r) =>
+        r.name.toLowerCase().includes(queryLower)
+      );
+      setSearchResults(filtered);
     },
-    [map, currentPosition]
+    [restaurants]
   );
 
   /** Pan map to selected result and open the info modal. */
@@ -228,6 +194,7 @@ function App() {
         isSearching={isSearching}
         onResultSelect={handleResultSelect}
         currentPosition={currentPosition}
+        nearbyRestaurants={restaurants}
       />
 
       <div style={{

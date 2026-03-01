@@ -12,10 +12,11 @@ function sanitizeInput(input) {
     .trim();
 }
 
-function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosition }) {
+function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosition, nearbyRestaurants = [] }) {
   const [query, setQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [outOfAreaMessage, setOutOfAreaMessage] = useState("");
   const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
   const debounceTimer = useRef(null);
   // Session token groups autocomplete keystrokes + place detail fetch into one
@@ -58,7 +59,12 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
           await window.google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(
             request
           );
-        setSuggestions(raw ?? []);
+        // Restrict suggestions to only the restaurants found by the nearby heuristic
+        const nearbyIds = new Set(nearbyRestaurants.map((r) => r.place_id));
+        const filtered = (raw ?? []).filter(
+          (s) => nearbyIds.size === 0 || nearbyIds.has(s.placePrediction?.placeId)
+        );
+        setSuggestions(filtered);
       } catch (err) {
         console.error("Autocomplete failed:", err);
         setSuggestions([]);
@@ -66,7 +72,7 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
         setIsFetchingSuggestions(false);
       }
     },
-    [currentPosition, getSessionToken]
+    [currentPosition, getSessionToken, nearbyRestaurants]
   );
 
   // Debounce autocomplete: fetch 300 ms after the user stops typing
@@ -74,6 +80,7 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
     const value = e.target.value;
     setQuery(value);
     setHasSearched(false);
+    setOutOfAreaMessage("");
     clearTimeout(debounceTimer.current);
 
     if (!value.trim()) {
@@ -100,15 +107,35 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
     onSearch(sanitized);
   };
 
-  // Select an autocomplete suggestion: fetch full place details then open modal
+  // Select an autocomplete suggestion: only open if the restaurant is in the nearby list
   const handleSuggestionSelect = async (suggestion) => {
     const prediction = suggestion.placePrediction;
     const name = prediction.mainText?.toString() ?? prediction.text.toString();
     setQuery(name);
     setSuggestions([]);
     setHasSearched(false);
+    setOutOfAreaMessage("");
     resetSessionToken(); // ends the billing session
 
+    const nearbyIds = new Set(nearbyRestaurants.map((r) => r.place_id));
+    const placeId = prediction.placeId;
+
+    // If it's not in the nearby set, inform the user and stop
+    if (nearbyIds.size > 0 && !nearbyIds.has(placeId)) {
+      setOutOfAreaMessage(
+        `"${name}" was not found among the restaurants near your location. Try searching for a restaurant shown on the map.`
+      );
+      return;
+    }
+
+    // Find the already-fetched nearby restaurant so we don't need an extra API call
+    const nearbyMatch = nearbyRestaurants.find((r) => r.place_id === placeId);
+    if (nearbyMatch) {
+      onResultSelect(nearbyMatch);
+      return;
+    }
+
+    // Fallback: fetch details (handles edge case where nearbyRestaurants is still loading)
     try {
       const place = prediction.toPlace();
       await place.fetchFields({
@@ -130,7 +157,6 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
       onResultSelect(restaurant);
     } catch (err) {
       console.error("Place detail fetch failed:", err);
-      // Fall back to text search so the user still gets a result
       onSearch(name);
       setHasSearched(true);
     }
@@ -147,6 +173,7 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
     setQuery("");
     setHasSearched(false);
     setSuggestions([]);
+    setOutOfAreaMessage("");
     clearTimeout(debounceTimer.current);
   };
 
@@ -229,6 +256,13 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
         </div>
       )}
 
+      {/* Out-of-area message (shown when autocomplete pick is outside the nearby list) */}
+      {outOfAreaMessage && (
+        <div className="search-results">
+          <div className="no-results out-of-area-message">{outOfAreaMessage}</div>
+        </div>
+      )}
+
       {/* Manual text-search results (shown after pressing Search) */}
       {showResults && (
         <div className="search-results" role="listbox" aria-label="Search results">
@@ -255,7 +289,8 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
             ))
           ) : (
             <div className="no-results">
-              No restaurants found for &ldquo;{sanitizeInput(query)}&rdquo;
+              &ldquo;{sanitizeInput(query)}&rdquo; was not found among the restaurants near your
+              location. Try searching for a restaurant shown on the map.
             </div>
           )}
         </div>
