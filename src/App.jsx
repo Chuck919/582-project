@@ -1,8 +1,9 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef } from "react";
+import { supabase } from "./lib/supabase";
 import RestaurantMarkers from "./components/RestaurantMarkers";
-import ErrorScreen from "./components/ErrorScreen";
 import AuthHeader from "./components/AuthHeader";
+import ErrorScreen from "./components/ErrorScreen";
 import "./App.css";
 
 const containerStyle = {
@@ -15,13 +16,14 @@ const libraries = ["places", "marker"];
 function App() {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
+  const [deals, setDeals] = useState({});
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [placesError, setPlacesError] = useState(null);
+  const [instruments, setInstruments] = useState([]);
   const userMarkerRef = useRef(null);
-
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
@@ -46,6 +48,38 @@ function App() {
         setLocationError(message);
       }
     );
+  }, []);
+
+  // Fetch deals from Supabase
+  // helper so other components can trigger a reload after adding a deal
+  const fetchDeals = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching deals:', error);
+        return;
+      }
+
+      const dealsByRestaurant = {};
+      data.forEach((deal) => {
+        if (!dealsByRestaurant[deal.restaurant_id]) {
+          dealsByRestaurant[deal.restaurant_id] = [];
+        }
+        dealsByRestaurant[deal.restaurant_id].push(deal);
+      });
+
+      setDeals(dealsByRestaurant);
+      console.log('Fetched deals:', dealsByRestaurant);
+    } catch (error) {
+      console.error('Error fetching deals:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchDeals();
   }, []);
 
   // Create user location marker with AdvancedMarkerElement
@@ -213,9 +247,12 @@ function App() {
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
+        deals={deals}
+        refreshDeals={fetchDeals} // pass callback to child/modal
       />
     </GoogleMap>
     </>
+  
   );
 }
 
