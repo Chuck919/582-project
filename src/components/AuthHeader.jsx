@@ -32,7 +32,7 @@ export default function AuthHeader() {
               </span>
               <button
                 type="button"
-                onClick={() => signOut()}
+                onClick={signOut}
                 className="auth-header-btn auth-header-btn-ghost"
               >
                 Log out

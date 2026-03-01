@@ -14,7 +14,6 @@ export function getEmailError(email) {
 
 export function getPasswordError(password, isSignUp = false) {
   if (!password) return "Password is required.";
-  if (password.length < 6) return "Password must be at least 6 characters.";
   if (isSignUp && password.length < 8) return "Password must be at least 8 characters for sign up.";
   return null;
 }
