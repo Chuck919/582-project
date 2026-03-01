@@ -59,37 +59,34 @@ function RestaurantMarkers({ restaurants, map }) {
     <>
       {/* Restaurant name labels */}
       {restaurants.map((restaurant) => {
-        try {
-          const location = restaurant.geometry.location;
-          const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
-          const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+        const location = restaurant.geometry?.location;
+        if (!location) return null;
+        const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+        const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+        if (!lat || !lng) return null;
 
-          return (
-            <OverlayView
-              key={restaurant.place_id}
-              position={{ lat, lng }}
-              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+        return (
+          <OverlayView
+            key={restaurant.place_id}
+            position={{ lat, lng }}
+            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+          >
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 'bold',
+                color: 'black',
+                textShadow: '1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white',
+                transform: 'translate(-70%, -50px)',
+                whiteSpace: 'nowrap',
+                pointerEvents: 'none',
+                textAlign: 'left',
+              }}
             >
-              <div
-                style={{
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  color: 'black',
-                  textShadow: '1px 1px 2px white, -1px -1px 2px white, 1px -1px 2px white, -1px 1px 2px white',
-                  transform: 'translate(-70%, -50px)',
-                  whiteSpace: 'nowrap',
-                  pointerEvents: 'none',
-                  textAlign: 'left',
-                }}
-              >
-                {restaurant.name}
-              </div>
-            </OverlayView>
-          );
-        } catch (err) {
-          console.error("Failed to render label for restaurant:", restaurant?.name, err);
-          return null;
-        }
+              {restaurant.name}
+            </div>
+          </OverlayView>
+        );
       })}
       
       {/* Restaurant Info Modal */}

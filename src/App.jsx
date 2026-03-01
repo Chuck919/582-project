@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import ErrorScreen from "./components/ErrorScreen";
 import AuthHeader from "./components/AuthHeader";
+import "./App.css";
 
 const containerStyle = {
   width: "100vw",
@@ -160,22 +161,9 @@ function App() {
       message="The Google Maps service could not be loaded. Please check your internet connection and try again."
     />
   );
-  if (!isLoaded) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100vw", height: "100vh", backgroundColor: "#242424", color: "rgba(255,255,255,0.87)" }}>
-      Loading map...
-    </div>
-  );
-  if (locationError) return (
-    <ErrorScreen
-      title="Location Unavailable"
-      message={locationError}
-    />
-  );
-  if (!currentPosition) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100vw", height: "100vh", backgroundColor: "#242424", color: "rgba(255,255,255,0.87)" }}>
-      Getting your location...
-    </div>
-  );
+  if (!isLoaded) return <ErrorScreen message="Loading map..." />;
+  if (locationError) return <ErrorScreen title="Location Unavailable" message={locationError} />;
+  if (!currentPosition) return <ErrorScreen message="Getting your location..." />;
 
   return (
     <>
@@ -201,22 +189,9 @@ function App() {
         </div>
       </div>
       {placesError && (
-        <div style={{
-          position: "absolute",
-          top: "60px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 1000,
-          backgroundColor: "#fff3cd",
-          color: "#664d03",
-          padding: "10px 20px",
-          borderRadius: "5px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-          fontSize: "14px",
-          textAlign: "center",
-          maxWidth: "400px",
-        }}>
+        <div className="places-error-banner">
           {placesError}
+          <button onClick={() => setPlacesError(null)} aria-label="Dismiss">x</button>
         </div>
       )}
       <GoogleMap
