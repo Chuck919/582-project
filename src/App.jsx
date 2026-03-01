@@ -167,7 +167,7 @@ function App() {
               }));
               supabase
                 .from("restaurants")
-                .upsert(rows, { onConflict: "id" })
+                .upsert(rows, { onConflict: "id", ignoreDuplicates: true })
                 .then(({ error }) => {
                   if (error) console.error("Supabase upsert failed:", error);
                 });
