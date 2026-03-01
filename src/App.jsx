@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 
-// bs comment
+// bs commen
 
 const containerStyle = {
   width: "100vw",
