@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import ErrorScreen from "./components/ErrorScreen";
 import AuthHeader from "./components/AuthHeader";
+import { useAuth } from "./contexts/AuthContext";
+import { supabase } from "./lib/supabase";
 import "./App.css";
 
 const containerStyle = {
@@ -13,6 +15,7 @@ const containerStyle = {
 const libraries = ["places", "marker"];
 
 function App() {
+  const { user } = useAuth();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [map, setMap] = useState(null);
@@ -98,7 +101,7 @@ function App() {
       
       // Using new Place API instead of deprecated PlacesService
       const request = {
-        fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating'],
+        fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
         locationRestriction: {
           center: currentPosition,
           radius: 10000, // 10km radius
@@ -130,11 +133,45 @@ function App() {
                 }
               },
               rating: place.rating,
-              types: place.types
+              cuisine: place.types
+                ? place.types
+                    .filter((type) => type.includes("_restaurant"))
+                    .map((type) =>
+                      type
+                        .replace(/_/g, " ")
+                        .split(" ")
+                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(" ")
+                    )
+                : null,
+              price_range: place.priceRange
+                ? [
+                    place.priceRange.startPrice.units + place.priceRange.startPrice.nanos / 1e9,
+                    place.priceRange.endPrice.units + place.priceRange.endPrice.nanos / 1e9,
+                  ]
+                : null
             }));
             
             setRestaurants(formattedResults);
             sessionStorage.setItem(cacheKey, JSON.stringify(formattedResults));
+
+            if (user) {
+              const rows = formattedResults.map(r => ({
+                id: r.place_id,
+                name: r.name,
+                cuisine: r.cuisine,
+                rating: r.rating ?? 0,
+                price_range: r.price_range,
+                lat: r.geometry.location.lat,
+                lng: r.geometry.location.lng,
+              }));
+              supabase
+                .from("restaurants")
+                .upsert(rows, { onConflict: "id" })
+                .then(({ error }) => {
+                  if (error) console.error("Supabase upsert failed:", error);
+                });
+            }
           } else {
             console.log("No restaurants found in this area");
           }
@@ -149,7 +186,7 @@ function App() {
           setHasSearched(true);
         });
     }
-  }, [map, currentPosition, hasSearched]);
+  }, [map, currentPosition, hasSearched, user]);
 
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
