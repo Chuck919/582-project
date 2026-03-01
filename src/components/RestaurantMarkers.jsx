@@ -18,22 +18,26 @@ function RestaurantMarkers({ restaurants, map, deals, refreshDeals }) {
     // Create new AdvancedMarkerElements
     if (map && window.google && window.google.maps && window.google.maps.marker) {
       restaurants.forEach((restaurant) => {
-        const location = restaurant.geometry.location;
-        const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
-        const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+        try {
+          const location = restaurant.geometry.location;
+          const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+          const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
 
-        const marker = new window.google.maps.marker.AdvancedMarkerElement({
-          map: map,
-          position: { lat, lng },
-          title: restaurant.name,
-        });
+          const marker = new window.google.maps.marker.AdvancedMarkerElement({
+            map: map,
+            position: { lat, lng },
+            title: restaurant.name,
+          });
 
-        // Add click listener using gmp-click for AdvancedMarkerElement
-        marker.addListener('gmp-click', () => {
-          setSelectedRestaurant(restaurant);
-        });
+          // Add click listener using gmp-click for AdvancedMarkerElement
+          marker.addListener('gmp-click', () => {
+            setSelectedRestaurant(restaurant);
+          });
 
-        markersRef.current.push(marker);
+          markersRef.current.push(marker);
+        } catch (err) {
+          console.error("Failed to create marker for restaurant:", restaurant?.name, err);
+        }
       });
     }
 
@@ -55,10 +59,12 @@ function RestaurantMarkers({ restaurants, map, deals, refreshDeals }) {
     <>
       {/* Restaurant name labels */}
       {restaurants.map((restaurant) => {
-        const location = restaurant.geometry.location;
+        const location = restaurant.geometry?.location;
+        if (!location) return null;
         const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
         const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
-        
+        if (!lat || !lng) return null;
+
         return (
           <OverlayView
             key={restaurant.place_id}
