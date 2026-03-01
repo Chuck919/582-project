@@ -133,18 +133,9 @@ function App() {
                 }
               },
               rating: place.rating,
-              cuisine: (() => {
-                const types = place.types
-                  ?.filter((type) => type.includes("_restaurant"))
-                  .map((type) =>
-                    type
-                      .replace(/_/g, " ")
-                      .split(" ")
-                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(" ")
-                  );
-                return types?.length ? types : null;
-              })(),
+              cuisine: place.types?.filter(t => t.includes("_restaurant"))
+                .map(t => t.replace(/_/g, " ").split(" ")
+                  .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")) || null,
               price_range: place.priceRange
                 ? [
                     place.priceRange.startPrice.units + place.priceRange.startPrice.nanos / 1e9,
@@ -155,7 +146,6 @@ function App() {
             
             setRestaurants(formattedResults);
             sessionStorage.setItem(cacheKey, JSON.stringify(formattedResults));
-
           } else {
             console.log("No restaurants found in this area");
           }
