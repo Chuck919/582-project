@@ -133,17 +133,18 @@ function App() {
                 }
               },
               rating: place.rating,
-              cuisine: place.types
-                ? place.types
-                    .filter((type) => type.includes("_restaurant"))
-                    .map((type) =>
-                      type
-                        .replace(/_/g, " ")
-                        .split(" ")
-                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(" ")
-                    )
-                : null,
+              cuisine: (() => {
+                const types = place.types
+                  ?.filter((type) => type.includes("_restaurant"))
+                  .map((type) =>
+                    type
+                      .replace(/_/g, " ")
+                      .split(" ")
+                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(" ")
+                  );
+                return types?.length ? types : null;
+              })(),
               price_range: place.priceRange
                 ? [
                     place.priceRange.startPrice.units + place.priceRange.startPrice.nanos / 1e9,
@@ -155,23 +156,6 @@ function App() {
             setRestaurants(formattedResults);
             sessionStorage.setItem(cacheKey, JSON.stringify(formattedResults));
 
-            if (user) {
-              const rows = formattedResults.map(r => ({
-                id: r.place_id,
-                name: r.name,
-                cuisine: r.cuisine,
-                rating: r.rating ?? 0,
-                price_range: r.price_range,
-                lat: r.geometry.location.lat,
-                lng: r.geometry.location.lng,
-              }));
-              supabase
-                .from("restaurants")
-                .upsert(rows, { onConflict: "id", ignoreDuplicates: true })
-                .then(({ error }) => {
-                  if (error) console.error("Supabase upsert failed:", error);
-                });
-            }
           } else {
             console.log("No restaurants found in this area");
           }
@@ -186,7 +170,26 @@ function App() {
           setHasSearched(true);
         });
     }
-  }, [map, currentPosition, hasSearched, user]);
+  }, [map, currentPosition, hasSearched]);
+
+  useEffect(() => {
+    if (!user || !restaurants.length) return;
+    const rows = restaurants.map(r => ({
+      id: r.place_id,
+      name: r.name,
+      cuisine: r.cuisine,
+      rating: r.rating ?? 0,
+      price_range: r.price_range,
+      lat: r.geometry.location.lat,
+      lng: r.geometry.location.lng,
+    }));
+    supabase
+      .from("restaurants")
+      .upsert(rows, { onConflict: "id", ignoreDuplicates: true })
+      .then(({ error }) => {
+        if (error) console.error("Supabase upsert failed:", error);
+      });
+  }, [user, restaurants]);
 
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
