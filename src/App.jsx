@@ -1,7 +1,9 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
+import ErrorScreen from "./components/ErrorScreen";
 import AuthHeader from "./components/AuthHeader";
+import "./App.css";
 
 const containerStyle = {
   width: "100vw",
@@ -16,9 +18,11 @@ function App() {
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [placesError, setPlacesError] = useState(null);
   const userMarkerRef = useRef(null);
 
-  const { isLoaded } = useLoadScript({
+  const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
   });
@@ -32,7 +36,14 @@ function App() {
         });
       },
       (error) => {
-        console.error("Error getting location:", error);
+        const messages = {
+          1: "Location access was denied. Please enable location permissions in your browser settings and refresh the page.",
+          2: "Your location could not be determined due to a network or hardware error.",
+          3: "Location request timed out. Please refresh the page and try again.",
+        };
+        const message = messages[error.code] || "An unknown error occurred while retrieving your location.";
+        console.error(`Geolocation error (code ${error.code}):`, message, error);
+        setLocationError(message);
       }
     );
   }, []);
@@ -130,7 +141,11 @@ function App() {
           setHasSearched(true);
         })
         .catch(error => {
-          console.error("Places search failed:", error);
+          console.error("Places API search failed:", error);
+          const message = navigator.onLine
+            ? "Could not load nearby restaurants. The map is still available."
+            : "No internet connection. Restaurant data could not be loaded.";
+          setPlacesError(message);
           setHasSearched(true);
         });
     }
@@ -140,7 +155,15 @@ function App() {
     setMap(mapInstance);
   };
 
-  if (!isLoaded || !currentPosition) return <div>Loading...</div>;
+  if (loadError) return (
+    <ErrorScreen
+      title="Map Unavailable"
+      message="The Google Maps service could not be loaded. Please check your internet connection and try again."
+    />
+  );
+  if (!isLoaded) return <ErrorScreen message="Loading map..." />;
+  if (locationError) return <ErrorScreen title="Location Unavailable" message={locationError} />;
+  if (!currentPosition) return <ErrorScreen message="Getting your location..." />;
 
   return (
     <>
@@ -165,6 +188,12 @@ function App() {
           Restaurants found: {restaurants.length}
         </div>
       </div>
+      {placesError && (
+        <div className="places-error-banner">
+          {placesError}
+          <button onClick={() => setPlacesError(null)} aria-label="Dismiss">x</button>
+        </div>
+      )}
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={currentPosition}
