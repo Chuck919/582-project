@@ -136,7 +136,7 @@ function App() {
               cuisine: place.types?.filter(t => t.includes("_restaurant"))
                 .map(t => t.replace(/_/g, " ").split(" ")
                   .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")) || null,
-              price_range: place.priceRange
+              price_range: place.priceRange?.startPrice && place.priceRange?.endPrice
                 ? [
                     place.priceRange.startPrice.units + place.priceRange.startPrice.nanos / 1e9,
                     place.priceRange.endPrice.units + place.priceRange.endPrice.nanos / 1e9,
