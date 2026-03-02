@@ -1,10 +1,11 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef, useCallback } from "react";
-import RestaurantMarkers from "./components/RestaurantMarkers";
-import ErrorScreen from "./components/ErrorScreen";
-import AuthHeader from "./components/AuthHeader";
-import { useAuth } from "./contexts/AuthContext";
 import { supabase } from "./lib/supabase";
+import { useAuth } from "./contexts/useAuth";
+import { fetchDeals } from "./utils/deals";
+import RestaurantMarkers from "./components/RestaurantMarkers";
+import AuthHeader from "./components/AuthHeader";
+import ErrorScreen from "./components/ErrorScreen";
 import "./App.css";
 import SearchBar from "./components/SearchBar";
 
@@ -63,6 +64,8 @@ function App() {
   const { user } = useAuth();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
+  const [deals, setDeals] = useState({});
+  const [dealsError, setDealsError] = useState(null);
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -70,7 +73,6 @@ function App() {
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const userMarkerRef = useRef(null);
-
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
@@ -96,6 +98,22 @@ function App() {
       }
     );
   }, []);
+
+  // Fetch deals from Supabase and update state.
+  // Wrapped in useCallback so it can be passed as a stable prop to children.
+  const refreshDeals = useCallback(async () => {
+    try {
+      const dealsByRestaurant = await fetchDeals();
+      setDeals(dealsByRestaurant);
+    } catch (err) {
+      console.error('Error fetching deals:', err);
+      setDealsError('Failed to load deals. Please try again later.');
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshDeals();
+  }, [refreshDeals]);
 
   // Create user location marker with AdvancedMarkerElement
   useEffect(() => {
@@ -306,6 +324,12 @@ function App() {
           <button onClick={() => setPlacesError(null)} aria-label="Dismiss">x</button>
         </div>
       )}
+      {dealsError && (
+        <div className="places-error-banner">
+          {dealsError}
+          <button onClick={() => setDealsError(null)} aria-label="Dismiss">x</button>
+        </div>
+      )}
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={currentPosition}
@@ -325,6 +349,8 @@ function App() {
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
+        deals={deals}
+        refreshDeals={refreshDeals}
       />
     </GoogleMap>
     </>

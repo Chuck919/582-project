@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import { getEmailError, getPasswordError } from "../utils/validation";
 
 export default function SignUp({ onClose, onSwitchToLogin }) {

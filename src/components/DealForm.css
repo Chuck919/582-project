@@ -1,0 +1,58 @@
+/* Basic form styling for deal submissions; mirrors the auth form look and feel */
+.deal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.deal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.deal-input {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  color: #1e293b;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.deal-input:hover {
+  border-color: #cbd5e1;
+}
+
+.deal-input:focus {
+  outline: none;
+  border-color: #00509D;
+  box-shadow: 0 0 0 3px rgba(0, 80, 157, 0.15);
+}
+
+.deal-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  background: #003F88;
+  color: #fff;
+  transition: background 0.15s, transform 0.05s;
+}
+
+.deal-btn:hover {
+  background: #00296B;
+}
+
+.deal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.deal-error {
+  font-size: 0.8125rem;
+  color: #b91c1c;
+}

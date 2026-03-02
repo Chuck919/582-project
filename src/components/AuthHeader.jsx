@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/useAuth";
 import Login from "./Login";
 import SignUp from "./SignUp";
 import "./Auth.css";
