@@ -1,9 +1,8 @@
-import { InfoWindow, OverlayView } from "@react-google-maps/api";
-import { useEffect, useRef, useState } from "react";
+import { OverlayView } from "@react-google-maps/api";
+import { useEffect, useRef } from "react";
 import RestaurantInfoModal from "./RestaurantInfoModal";
 
-function RestaurantMarkers({ restaurants, map }) {
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRestaurant, setSelectedRestaurant }) {
   const markersRef = useRef([]);
 
   useEffect(() => {
@@ -18,22 +17,26 @@ function RestaurantMarkers({ restaurants, map }) {
     // Create new AdvancedMarkerElements
     if (map && window.google && window.google.maps && window.google.maps.marker) {
       restaurants.forEach((restaurant) => {
-        const location = restaurant.geometry.location;
-        const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
-        const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+        try {
+          const location = restaurant.geometry.location;
+          const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+          const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
 
-        const marker = new window.google.maps.marker.AdvancedMarkerElement({
-          map: map,
-          position: { lat, lng },
-          title: restaurant.name,
-        });
+          const marker = new window.google.maps.marker.AdvancedMarkerElement({
+            map: map,
+            position: { lat, lng },
+            title: restaurant.name,
+          });
 
-        // Add click listener using gmp-click for AdvancedMarkerElement
-        marker.addListener('gmp-click', () => {
-          setSelectedRestaurant(restaurant);
-        });
+          // Add click listener using gmp-click for AdvancedMarkerElement
+          marker.addListener('gmp-click', () => {
+            setSelectedRestaurant(restaurant);
+          });
 
-        markersRef.current.push(marker);
+          markersRef.current.push(marker);
+        } catch (err) {
+          console.error("Failed to create marker for restaurant:", restaurant?.name, err);
+        }
       });
     }
 
@@ -45,7 +48,7 @@ function RestaurantMarkers({ restaurants, map }) {
         }
       });
     };
-  }, [restaurants, map]);
+  }, [restaurants, map, setSelectedRestaurant]);
 
   const handleCloseModal = () => {
     setSelectedRestaurant(null);
@@ -55,10 +58,12 @@ function RestaurantMarkers({ restaurants, map }) {
     <>
       {/* Restaurant name labels */}
       {restaurants.map((restaurant) => {
-        const location = restaurant.geometry.location;
+        const location = restaurant.geometry?.location;
+        if (!location) return null;
         const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
         const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
-        
+        if (!lat || !lng) return null;
+
         return (
           <OverlayView
             key={restaurant.place_id}
@@ -86,7 +91,12 @@ function RestaurantMarkers({ restaurants, map }) {
       {/* Restaurant Info Modal */}
       <RestaurantInfoModal 
         restaurant={selectedRestaurant} 
-        onClose={handleCloseModal} 
+        onClose={handleCloseModal}
+        deals={selectedRestaurant ? deals[selectedRestaurant.place_id] || [] : []}
+        onDealAdded={() => {
+          // child notified that a deal was inserted; refresh parent state
+          refreshDeals?.();
+        }}
       />
     </>
   );
