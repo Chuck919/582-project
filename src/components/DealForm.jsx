@@ -4,7 +4,7 @@ import { sanitizeInput } from "../utils/validation";
 import "./DealForm.css";
 
 /**
- * A simple form that allows a user to submit a deal.  
+ * A simple form that allows a user to submit a deal.
  *
  * Props:
  * - restaurantId (string) - optional. If provided, the deal will be tied to the

@@ -25,7 +25,7 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
           <h3>Current Deals</h3>
           {deals && deals.length > 0 ? (
             deals.map((deal, index) => (
-              <div key={deal.deal_id || index} className="deal-item">
+              <div key={deal.id || index} className="deal-item">
                 <p><strong>{deal.title}</strong></p>
                 {deal.description && <p>{deal.description}</p>}
                 {deal.expiry_date && (

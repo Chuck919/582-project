@@ -1,7 +1,3 @@
-// Relative import from utils folder to the lib directory where the Supabase
-// client is created. We don't currently have a path alias set up, so use a
-// relative path instead. The file itself is JavaScript, but TypeScript can
-// import it just fine.
 import { supabase } from '../lib/supabase'
 
 /**
@@ -31,27 +27,20 @@ export async function createDeal(input) {
 }
 
 export async function fetchDeals() {
-  try {
-    const { data, error } = await supabase
-      .from('deals')
-      .select('*');
+  const { data, error } = await supabase.from('deals').select('*');
 
-    if (error) {
-      console.error('Error fetching deals:', error);
-      throw new Error('Failed to fetch deals');
-    }
-
-    const dealsByRestaurant = {};
-    data.forEach((deal) => {
-      if (!dealsByRestaurant[deal.restaurant_id]) {
-        dealsByRestaurant[deal.restaurant_id] = [];
-      }
-      dealsByRestaurant[deal.restaurant_id].push(deal);
-    });
-
-    return dealsByRestaurant;
-  } catch (error) {
+  if (error) {
     console.error('Error fetching deals:', error);
     throw error;
   }
+
+  const dealsByRestaurant = {};
+  data.forEach((deal) => {
+    if (!dealsByRestaurant[deal.restaurant_id]) {
+      dealsByRestaurant[deal.restaurant_id] = [];
+    }
+    dealsByRestaurant[deal.restaurant_id].push(deal);
+  });
+
+  return dealsByRestaurant;
 }
