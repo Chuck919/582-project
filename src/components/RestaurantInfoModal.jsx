@@ -4,17 +4,8 @@ import "./RestaurantInfoModal.css";
 function RestaurantInfoModal({ restaurant, onClose }) {
   if (!restaurant) return null;
 
-  const filteredTypes = restaurant.types
-    ? restaurant.types
-        .filter((type) => type.includes("_restaurant"))
-        .map((type) =>
-          type
-            .replace(/_/g, " ")
-            .split(" ")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" ")
-        )
-        .join(", ")
+  const cuisineLabel = restaurant.cuisine?.length
+    ? restaurant.cuisine.join(", ")
     : "N/A";
 
   return (
@@ -25,7 +16,7 @@ function RestaurantInfoModal({ restaurant, onClose }) {
         </button>
         <h2>{restaurant.name}</h2>
         <p>Rating: {restaurant.rating || "N/A"}</p>
-        <p>Cuisine: {filteredTypes || "N/A"}</p>
+        <p>Cuisine: {cuisineLabel}</p>
       </div>
     </div>
   );
