@@ -1,10 +1,19 @@
-import React from "react";
 import "./RestaurantInfoModal.css";
 import DealForm from "./DealForm";
 import { useAuth } from "../contexts/useAuth";
 
+function formatDate(dateString) {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
   const { user } = useAuth();
+
   if (!restaurant) return null;
 
   const cuisineLabel = restaurant.cuisine?.length
@@ -20,24 +29,6 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
         <h2>{restaurant.name}</h2>
         <p>Rating: {restaurant.rating || "N/A"}</p>
         <p>Cuisine: {cuisineLabel}</p>
-        
-        <div className="deals-section">
-          <h3>Current Deals</h3>
-          {deals && deals.length > 0 ? (
-            deals.map((deal, index) => (
-              <div key={deal.id || index} className="deal-item">
-                <p><strong>{deal.title}</strong></p>
-                {deal.description && <p>{deal.description}</p>}
-                {deal.expiry_date && (
-                  <p>Expires: {new Date(deal.expiry_date).toLocaleDateString()}</p>
-                )}
-                {deal.terms && <p>Terms: {deal.terms}</p>}
-              </div>
-            ))
-          ) : (
-            <p>No current deals available.</p>
-          )}
-        </div>
 
         <div className="deal-form-section">
           <h3>Submit a Deal</h3>
@@ -52,6 +43,26 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
             <p style={{ fontSize: "0.875rem", color: "#64748b" }}>
               Log in to submit a deal.
             </p>
+          )}
+        </div>
+
+        <div className="deals-section">
+          <h3>Deals</h3>
+          {deals && deals.length > 0 ? (
+            <div className="deals-list">
+              {deals.map((deal) => (
+                <div key={deal.id} className="deal-item">
+                  <p className="deal-description">{deal.title}</p>
+                  {deal.description && <p>{deal.description}</p>}
+                  <p className="deal-discount">Discount: ${deal.price} Off</p>
+                  <p className="deal-expiration">
+                    Expires: {formatDate(deal.expiry_date)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-deals">No current deals available.</p>
           )}
         </div>
       </div>
