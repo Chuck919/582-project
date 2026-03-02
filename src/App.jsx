@@ -1,10 +1,12 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "./lib/supabase";
+import { useAuth } from "./contexts/AuthContext";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
 import "./App.css";
+import SearchBar from "./components/SearchBar";
 
 const containerStyle = {
   width: "100vw",
@@ -13,7 +15,52 @@ const containerStyle = {
 
 const libraries = ["places", "marker"];
 
+/**
+ * Sanitize helper — strips HTML and characters that could be used for
+ * XSS or injection before sending input to the Google Places API.
+ */
+function sanitize(input) {
+  return input
+    .replace(/<[^>]*>/g, "")
+    .replace(/[<>"'`;]/g, "")
+    .trim();
+}
+
+/** Levenshtein edit distance between two strings. */
+function levenshtein(a, b) {
+  const matrix = Array.from({ length: b.length + 1 }, (_, i) => [i]);
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      matrix[i][j] =
+        b[i - 1] === a[j - 1]
+          ? matrix[i - 1][j - 1]
+          : 1 + Math.min(matrix[i - 1][j], matrix[i][j - 1], matrix[i - 1][j - 1]);
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+/**
+ * Fuzzy-matches a query against a restaurant name.
+ * Each word in the query must either be a substring of some word in the name
+ * or be within an edit-distance threshold of it (1 typo for words ≥4 chars,
+ * 2 typos for words ≥7 chars).
+ */
+function fuzzyMatch(query, name) {
+  const queryWords = query.toLowerCase().split(/\s+/);
+  const nameWords = name.toLowerCase().split(/\s+/);
+  return queryWords.every((qw) =>
+    nameWords.some((nw) => {
+      if (nw.includes(qw) || qw.includes(nw)) return true;
+      const maxDist = qw.length <= 3 ? 0 : qw.length <= 6 ? 1 : 2;
+      return levenshtein(qw, nw) <= maxDist;
+    })
+  );
+}
+
 function App() {
+  const { user } = useAuth();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
@@ -22,7 +69,7 @@ function App() {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [placesError, setPlacesError] = useState(null);
-  const [instruments, setInstruments] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -132,7 +179,7 @@ function App() {
       
       // Using new Place API instead of deprecated PlacesService
       const request = {
-        fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating'],
+        fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
         locationRestriction: {
           center: currentPosition,
           radius: 10000, // 10km radius
@@ -164,7 +211,15 @@ function App() {
                 }
               },
               rating: place.rating,
-              types: place.types
+              cuisine: place.types?.filter(t => t.includes("_restaurant"))
+                .map(t => t.replace(/_/g, " ").split(" ")
+                  .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")) || null,
+              price_range: place.priceRange?.startPrice && place.priceRange?.endPrice
+                ? [
+                    place.priceRange.startPrice.units + place.priceRange.startPrice.nanos / 1e9,
+                    place.priceRange.endPrice.units + place.priceRange.endPrice.nanos / 1e9,
+                  ]
+                : null
             }));
             
             setRestaurants(formattedResults);
@@ -185,9 +240,55 @@ function App() {
     }
   }, [map, currentPosition, hasSearched]);
 
+  useEffect(() => {
+    if (!user || !restaurants.length) return;
+    const rows = restaurants.map(r => ({
+      id: r.place_id,
+      name: r.name,
+      cuisine: r.cuisine,
+      rating: r.rating ?? 0,
+      price_range: r.price_range,
+      lat: r.geometry.location.lat,
+      lng: r.geometry.location.lng,
+    }));
+    supabase
+      .from("restaurants")
+      .upsert(rows, { onConflict: "id", ignoreDuplicates: true })
+      .then(({ error }) => {
+        if (error) console.error("Supabase upsert failed:", error);
+      });
+  }, [user, restaurants]);
+
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
   };
+
+  /**
+   * Search restaurants by filtering the already-fetched nearby list.
+   * Only restaurants surfaced by the initial proximity heuristic are returned.
+   */
+  const handleSearch = useCallback(
+    (rawQuery) => {
+      const query = sanitize(rawQuery);
+      if (!query) return;
+      const filtered = restaurants.filter((r) => fuzzyMatch(query, r.name));
+      setSearchResults(filtered);
+    },
+    [restaurants]
+  );
+
+  /** Pan map to selected result and open the info modal. */
+  const handleResultSelect = useCallback(
+    (restaurant) => {
+      if (map) {
+        map.panTo(restaurant.geometry.location);
+        map.setZoom(16);
+      }
+      setSelectedRestaurant(restaurant);
+      setSearchResults([]);
+    },
+    [map]
+  );
 
   if (loadError) return (
     <ErrorScreen
@@ -201,6 +302,15 @@ function App() {
 
   return (
     <>
+      {/* Search bar — centred at the top of the map */}
+      <SearchBar
+        onSearch={handleSearch}
+        results={searchResults}
+        onResultSelect={handleResultSelect}
+        currentPosition={currentPosition}
+        nearbyRestaurants={restaurants}
+      />
+
       <div style={{
         position: "absolute",
         top: "10px",
