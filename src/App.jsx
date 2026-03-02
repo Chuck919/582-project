@@ -61,7 +61,6 @@ function App() {
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
   const userMarkerRef = useRef(null);
 
   const { isLoaded } = useLoadScript({
@@ -221,7 +220,6 @@ function App() {
       <SearchBar
         onSearch={handleSearch}
         results={searchResults}
-        isSearching={isSearching}
         onResultSelect={handleResultSelect}
         currentPosition={currentPosition}
         nearbyRestaurants={restaurants}

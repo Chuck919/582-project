@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef } from "react";
 import "./SearchBar.css";
 
 /**
@@ -12,75 +12,35 @@ function sanitizeInput(input) {
     .trim();
 }
 
-function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosition, nearbyRestaurants = [] }) {
+function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyRestaurants = [] }) {
   const [query, setQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [outOfAreaMessage, setOutOfAreaMessage] = useState("");
-  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
   const debounceTimer = useRef(null);
-  // Session token groups autocomplete keystrokes + place detail fetch into one
-  // billable event. Reset after each selection or manual submission.
-  const sessionTokenRef = useRef(null);
 
-  const getSessionToken = useCallback(() => {
-    if (
-      !sessionTokenRef.current &&
-      window.google?.maps?.places?.AutocompleteSessionToken
-    ) {
-      sessionTokenRef.current =
-        new window.google.maps.places.AutocompleteSessionToken();
+  const fetchSuggestions = (input) => {
+    if (!input) {
+      setSuggestions([]);
+      return;
     }
-    return sessionTokenRef.current;
-  }, []);
 
-  const resetSessionToken = useCallback(() => {
-    sessionTokenRef.current = null;
-  }, []);
+    const sanitized = sanitizeInput(input);
+    if (!sanitized) {
+      setSuggestions([]);
+      return;
+    }
 
-  const fetchSuggestions = useCallback(
-    async (input) => {
-      if (!input || !window.google?.maps?.places?.AutocompleteSuggestion) {
-        setSuggestions([]);
-        return;
-      }
+    const filtered = nearbyRestaurants.filter((restaurant) =>
+      restaurant.name.toLowerCase().includes(sanitized.toLowerCase())
+    );
+    setSuggestions(filtered);
+  };
 
-      setIsFetchingSuggestions(true);
-      try {
-        const request = {
-          input,
-          sessionToken: getSessionToken(),
-          includedPrimaryTypes: ["restaurant"],
-        };
-        if (currentPosition) {
-          request.locationBias = { center: currentPosition, radius: 10000 };
-        }
-        const { suggestions: raw } =
-          await window.google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(
-            request
-          );
-        // Restrict suggestions to only the restaurants found by the nearby heuristic
-        const nearbyIds = new Set(nearbyRestaurants.map((r) => r.place_id));
-        const filtered = (raw ?? []).filter(
-          (s) => nearbyIds.size === 0 || nearbyIds.has(s.placePrediction?.placeId)
-        );
-        setSuggestions(filtered);
-      } catch (err) {
-        console.error("Autocomplete failed:", err);
-        setSuggestions([]);
-      } finally {
-        setIsFetchingSuggestions(false);
-      }
-    },
-    [currentPosition, getSessionToken, nearbyRestaurants]
-  );
-
-  // Debounce autocomplete: fetch 300 ms after the user stops typing
   const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
     setHasSearched(false);
-    setOutOfAreaMessage("");
     clearTimeout(debounceTimer.current);
 
     if (!value.trim()) {
@@ -88,85 +48,26 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
       return;
     }
 
-    const sanitized = sanitizeInput(value);
-    if (!sanitized) return;
-
     debounceTimer.current = setTimeout(() => {
-      fetchSuggestions(sanitized);
+      fetchSuggestions(value);
     }, 300);
   };
 
-  // Manual submit: fall back to full text search (e.g. when user ignores suggestions)
   const handleSubmit = (e) => {
     e.preventDefault();
     const sanitized = sanitizeInput(query);
     if (!sanitized) return;
     setSuggestions([]);
     setHasSearched(true);
-    resetSessionToken();
     onSearch(sanitized);
   };
 
-  // Select an autocomplete suggestion: only open if the restaurant is in the nearby list
-  const handleSuggestionSelect = async (suggestion) => {
-    const prediction = suggestion.placePrediction;
-    const name = prediction.mainText?.toString() ?? prediction.text.toString();
-    setQuery(name);
+  const handleSuggestionSelect = (restaurant) => {
+    setQuery(restaurant.name);
     setSuggestions([]);
     setHasSearched(false);
     setOutOfAreaMessage("");
-    resetSessionToken(); // ends the billing session
-
-    const nearbyIds = new Set(nearbyRestaurants.map((r) => r.place_id));
-    const placeId = prediction.placeId;
-
-    // If it's not in the nearby set, inform the user and stop
-    if (nearbyIds.size > 0 && !nearbyIds.has(placeId)) {
-      setOutOfAreaMessage(
-        `"${name}" was not found among the restaurants near your location. Try searching for a restaurant shown on the map.`
-      );
-      return;
-    }
-
-    // Find the already-fetched nearby restaurant so we don't need an extra API call
-    const nearbyMatch = nearbyRestaurants.find((r) => r.place_id === placeId);
-    if (nearbyMatch) {
-      onResultSelect(nearbyMatch);
-      return;
-    }
-
-    // Fallback: fetch details (handles edge case where nearbyRestaurants is still loading)
-    try {
-      const place = prediction.toPlace();
-      await place.fetchFields({
-        fields: ["id", "displayName", "formattedAddress", "location", "types", "rating"],
-      });
-      const restaurant = {
-        place_id: place.id,
-        name: place.displayName,
-        vicinity: place.formattedAddress,
-        geometry: {
-          location: {
-            lat: place.location.lat(),
-            lng: place.location.lng(),
-          },
-        },
-        rating: place.rating,
-        types: place.types,
-      };
-      onResultSelect(restaurant);
-    } catch (err) {
-      console.error("Place detail fetch failed:", err);
-      onSearch(name);
-      setHasSearched(true);
-    }
-  };
-
-  // Select a result from a manual text search
-  const handleResultSelect = (restaurant) => {
     onResultSelect(restaurant);
-    setQuery("");
-    setHasSearched(false);
   };
 
   const handleClear = () => {
@@ -174,10 +75,7 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
     setHasSearched(false);
     setSuggestions([]);
     setOutOfAreaMessage("");
-    clearTimeout(debounceTimer.current);
   };
-
-  useEffect(() => () => clearTimeout(debounceTimer.current), []);
 
   const showSuggestions = suggestions.length > 0;
   const showResults = hasSearched && !isSearching && !showSuggestions;
@@ -198,12 +96,7 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
             aria-controls="search-dropdown"
             autoComplete="off"
           />
-          {/* Spinner while fetching suggestions */}
-          {isFetchingSuggestions && (
-            <span className="search-spinner" aria-hidden="true" />
-          )}
-          {/* Clear button when there's text and we're not loading */}
-          {query && !isFetchingSuggestions && (
+          {query && (
             <button
               type="button"
               className="search-clear-button"
@@ -223,7 +116,6 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
         </button>
       </form>
 
-      {/* Autocomplete suggestions (shown while typing) */}
       {showSuggestions && (
         <div
           id="search-dropdown"
@@ -231,39 +123,28 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
           role="listbox"
           aria-label="Autocomplete suggestions"
         >
-          {suggestions.map((suggestion, i) => {
-            const prediction = suggestion.placePrediction;
-            const main = prediction.mainText?.toString() ?? "";
-            const secondary = prediction.secondaryText?.toString() ?? "";
-            return (
-              <div
-                key={prediction.placeId ?? i}
-                className="search-result-item"
-                role="option"
-                tabIndex={0}
-                onClick={() => handleSuggestionSelect(suggestion)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && handleSuggestionSelect(suggestion)
-                }
-              >
-                <span className="result-name">{main}</span>
-                {secondary && (
-                  <span className="result-address">{secondary}</span>
-                )}
-              </div>
-            );
-          })}
+          {suggestions.map((restaurant, i) => (
+            <div
+              key={restaurant.place_id ?? i}
+              className="search-result-item"
+              role="option"
+              tabIndex={0}
+              onClick={() => handleSuggestionSelect(restaurant)}
+              onKeyDown={(e) => e.key === "Enter" && handleSuggestionSelect(restaurant)}
+            >
+              <span className="result-name">{restaurant.name}</span>
+              {restaurant.vicinity && <span className="result-address">{restaurant.vicinity}</span>}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Out-of-area message (shown when autocomplete pick is outside the nearby list) */}
       {outOfAreaMessage && (
         <div className="search-results">
           <div className="no-results out-of-area-message">{outOfAreaMessage}</div>
         </div>
       )}
 
-      {/* Manual text-search results (shown after pressing Search) */}
       {showResults && (
         <div className="search-results" role="listbox" aria-label="Search results">
           {results.length > 0 ? (
@@ -273,18 +154,12 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
                 className="search-result-item"
                 role="option"
                 tabIndex={0}
-                onClick={() => handleResultSelect(restaurant)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && handleResultSelect(restaurant)
-                }
+                onClick={() => handleSuggestionSelect(restaurant)}
+                onKeyDown={(e) => e.key === "Enter" && handleSuggestionSelect(restaurant)}
               >
                 <span className="result-name">{restaurant.name}</span>
-                {restaurant.vicinity && (
-                  <span className="result-address">{restaurant.vicinity}</span>
-                )}
-                {restaurant.rating && (
-                  <span className="result-rating">★ {restaurant.rating}</span>
-                )}
+                {restaurant.vicinity && <span className="result-address">{restaurant.vicinity}</span>}
+                {restaurant.rating && <span className="result-rating">★ {restaurant.rating}</span>}
               </div>
             ))
           ) : (
@@ -296,7 +171,6 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, currentPosi
         </div>
       )}
 
-      {/* Full-text search loading */}
       {isSearching && <div className="search-loading">Searching…</div>}
     </div>
   );
