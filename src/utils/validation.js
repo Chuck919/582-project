@@ -1,3 +1,14 @@
+/**
+ * Strip HTML tags and characters commonly used for XSS/injection.
+ * Apply to all user-supplied text before sending to external APIs or storage.
+ */
+export function sanitizeInput(input) {
+  return String(input)
+    .replace(/<[^>]*>/g, "")
+    .replace(/[<>"'`;]/g, "")
+    .trim();
+}
+
 // Email: valid format (real-looking emails)
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

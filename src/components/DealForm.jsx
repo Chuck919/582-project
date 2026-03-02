@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createDeal } from "../utils/deals";
+import { sanitizeInput } from "../utils/validation";
 import "./DealForm.css";
 
 /**
@@ -38,8 +39,8 @@ export default function DealForm({ restaurantId = "", onSuccess, onError }) {
 
     try {
       const dealInput = {
-        title: title.trim(),
-        description: description.trim(),
+        title: sanitizeInput(title),
+        description: sanitizeInput(description),
         price: priceNum,
         restaurant_id: restaurantId,
       };

@@ -1,7 +1,8 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "./lib/supabase";
-import { useAuth } from "./contexts/AuthContext";
+import { useAuth } from "./contexts/useAuth";
+import { fetchDeals } from "./utils/deals";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
@@ -64,6 +65,7 @@ function App() {
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
+  const [dealsError, setDealsError] = useState(null);
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -97,48 +99,21 @@ function App() {
     );
   }, []);
 
-  // Fetch deals from Supabase
-  // helper so other components can trigger a reload after adding a deal
-  const fetchDeals = async () => {
+  // Fetch deals from Supabase and update state.
+  // Wrapped in useCallback so it can be passed as a stable prop to children.
+  const refreshDeals = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('deals')
-        .select('*');
-
-      if (error) {
-        console.error('Error fetching deals:', error);
-        alert('Failed to fetch deals. Please try again later.'); // Added user feedback
-        return;
-      }
-
-      const dealsByRestaurant = {};
-      data.forEach((deal) => {
-        if (!dealsByRestaurant[deal.restaurant_id]) {
-          dealsByRestaurant[deal.restaurant_id] = [];
-        }
-        dealsByRestaurant[deal.restaurant_id].push(deal);
-      });
-
+      const dealsByRestaurant = await fetchDeals();
       setDeals(dealsByRestaurant);
-      console.log('Fetched deals:', dealsByRestaurant);
-    } catch (error) {
-      console.error('Error fetching deals:', error);
-      alert('An unexpected error occurred while fetching deals.'); // Added user feedback
+    } catch (err) {
+      console.error('Error fetching deals:', err);
+      setDealsError('Failed to load deals. Please try again later.');
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const loadDeals = async () => {
-      try {
-        const dealsByRestaurant = await fetchDeals();
-        setDeals(dealsByRestaurant);
-      } catch (error) {
-        alert('An error occurred while loading deals.');
-      }
-    };
-
-    loadDeals();
-  }, []);
+    refreshDeals();
+  }, [refreshDeals]);
 
   // Create user location marker with AdvancedMarkerElement
   useEffect(() => {
@@ -349,6 +324,12 @@ function App() {
           <button onClick={() => setPlacesError(null)} aria-label="Dismiss">x</button>
         </div>
       )}
+      {dealsError && (
+        <div className="places-error-banner">
+          {dealsError}
+          <button onClick={() => setDealsError(null)} aria-label="Dismiss">x</button>
+        </div>
+      )}
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={currentPosition}
@@ -369,11 +350,10 @@ function App() {
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
         deals={deals}
-        refreshDeals={fetchDeals} // pass callback to child/modal
+        refreshDeals={refreshDeals}
       />
     </GoogleMap>
     </>
-  
   );
 }
 

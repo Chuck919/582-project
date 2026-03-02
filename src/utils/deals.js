@@ -10,7 +10,6 @@ import { supabase } from '../lib/supabase'
  * @property {string} title
  * @property {string} description
  * @property {number} price
- * @property {string} link
  * @property {string} user_id
  * @property {string} restaurant_id - foreign key to a restaurant (place_id)
  * @property {string} created_at

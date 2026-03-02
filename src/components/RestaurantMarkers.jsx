@@ -48,7 +48,7 @@ function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRest
         }
       });
     };
-  }, [restaurants, map]);
+  }, [restaurants, map, setSelectedRestaurant]);
 
   const handleCloseModal = () => {
     setSelectedRestaurant(null);

@@ -1,8 +1,10 @@
 import React from "react";
 import "./RestaurantInfoModal.css";
 import DealForm from "./DealForm";
+import { useAuth } from "../contexts/useAuth";
 
 function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
+  const { user } = useAuth();
   if (!restaurant) return null;
 
   const cuisineLabel = restaurant.cuisine?.length
@@ -19,35 +21,38 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
         <p>Rating: {restaurant.rating || "N/A"}</p>
         <p>Cuisine: {cuisineLabel}</p>
         
-        {deals && deals.length > 0 && (
-          <div className="deals-section">
-            <h3>Current Deals</h3>
-            {deals.map((deal, index) => (
+        <div className="deals-section">
+          <h3>Current Deals</h3>
+          {deals && deals.length > 0 ? (
+            deals.map((deal, index) => (
               <div key={deal.deal_id || index} className="deal-item">
-                <p><strong>{deal.description}</strong></p>
+                <p><strong>{deal.title}</strong></p>
+                {deal.description && <p>{deal.description}</p>}
                 {deal.expiry_date && (
                   <p>Expires: {new Date(deal.expiry_date).toLocaleDateString()}</p>
                 )}
                 {deal.terms && <p>Terms: {deal.terms}</p>}
               </div>
-            ))}
-          </div>
-        )}
-        
-        {deals && deals.length === 0 && (
-          <p>No current deals available.</p>
-        )}
+            ))
+          ) : (
+            <p>No current deals available.</p>
+          )}
+        </div>
 
-        {/* allow users to submit their own deal for this restaurant */}
         <div className="deal-form-section">
           <h3>Submit a Deal</h3>
-          <DealForm
-            restaurantId={restaurant.place_id}
-            onSuccess={(deal) => {
-              // bubble event up to parent so it can refresh its data
-              onDealAdded?.(deal);
-            }}
-          />
+          {user ? (
+            <DealForm
+              restaurantId={restaurant.place_id}
+              onSuccess={(deal) => {
+                onDealAdded?.(deal);
+              }}
+            />
+          ) : (
+            <p style={{ fontSize: "0.875rem", color: "#64748b" }}>
+              Log in to submit a deal.
+            </p>
+          )}
         </div>
       </div>
     </div>
