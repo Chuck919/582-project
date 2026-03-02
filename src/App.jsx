@@ -1,6 +1,11 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import { useEffect, useState, useRef, useCallback } from "react";
 import RestaurantMarkers from "./components/RestaurantMarkers";
+import ErrorScreen from "./components/ErrorScreen";
+import AuthHeader from "./components/AuthHeader";
+import { useAuth } from "./contexts/AuthContext";
+import { supabase } from "./lib/supabase";
+import "./App.css";
 import SearchBar from "./components/SearchBar";
 
 const containerStyle = {
@@ -55,15 +60,18 @@ function fuzzyMatch(query, name) {
 }
 
 function App() {
+  const { user } = useAuth();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const userMarkerRef = useRef(null);
 
-  const { isLoaded } = useLoadScript({
+  const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
   });
@@ -77,7 +85,14 @@ function App() {
         });
       },
       (error) => {
-        console.error("Error getting location:", error);
+        const messages = {
+          1: "Location access was denied. Please enable location permissions in your browser settings and refresh the page.",
+          2: "Your location could not be determined due to a network or hardware error.",
+          3: "Location request timed out. Please refresh the page and try again.",
+        };
+        const message = messages[error.code] || "An unknown error occurred while retrieving your location.";
+        console.error(`Geolocation error (code ${error.code}):`, message, error);
+        setLocationError(message);
       }
     );
   }, []);
@@ -132,7 +147,7 @@ function App() {
       
       // Using new Place API instead of deprecated PlacesService
       const request = {
-        fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating'],
+        fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
         locationRestriction: {
           center: currentPosition,
           radius: 10000, // 10km radius
@@ -164,7 +179,15 @@ function App() {
                 }
               },
               rating: place.rating,
-              types: place.types
+              cuisine: place.types?.filter(t => t.includes("_restaurant"))
+                .map(t => t.replace(/_/g, " ").split(" ")
+                  .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")) || null,
+              price_range: place.priceRange?.startPrice && place.priceRange?.endPrice
+                ? [
+                    place.priceRange.startPrice.units + place.priceRange.startPrice.nanos / 1e9,
+                    place.priceRange.endPrice.units + place.priceRange.endPrice.nanos / 1e9,
+                  ]
+                : null
             }));
             
             setRestaurants(formattedResults);
@@ -175,11 +198,34 @@ function App() {
           setHasSearched(true);
         })
         .catch(error => {
-          console.error("Places search failed:", error);
+          console.error("Places API search failed:", error);
+          const message = navigator.onLine
+            ? "Could not load nearby restaurants. The map is still available."
+            : "No internet connection. Restaurant data could not be loaded.";
+          setPlacesError(message);
           setHasSearched(true);
         });
     }
   }, [map, currentPosition, hasSearched]);
+
+  useEffect(() => {
+    if (!user || !restaurants.length) return;
+    const rows = restaurants.map(r => ({
+      id: r.place_id,
+      name: r.name,
+      cuisine: r.cuisine,
+      rating: r.rating ?? 0,
+      price_range: r.price_range,
+      lat: r.geometry.location.lat,
+      lng: r.geometry.location.lng,
+    }));
+    supabase
+      .from("restaurants")
+      .upsert(rows, { onConflict: "id", ignoreDuplicates: true })
+      .then(({ error }) => {
+        if (error) console.error("Supabase upsert failed:", error);
+      });
+  }, [user, restaurants]);
 
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
@@ -212,7 +258,15 @@ function App() {
     [map]
   );
 
-  if (!isLoaded || !currentPosition) return <div>Loading...</div>;
+  if (loadError) return (
+    <ErrorScreen
+      title="Map Unavailable"
+      message="The Google Maps service could not be loaded. Please check your internet connection and try again."
+    />
+  );
+  if (!isLoaded) return <ErrorScreen message="Loading map..." />;
+  if (locationError) return <ErrorScreen title="Location Unavailable" message={locationError} />;
+  if (!currentPosition) return <ErrorScreen message="Getting your location..." />;
 
   return (
     <>
@@ -230,14 +284,28 @@ function App() {
         top: "10px",
         right: "10px",
         zIndex: 1000,
-        background: "white",
-        padding: "10px",
-        borderRadius: "5px",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-        color: "black"
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
       }}>
-        Restaurants found: {restaurants.length}
+        <AuthHeader />
+        <div style={{
+          background: "white",
+          padding: "10px 14px",
+          borderRadius: "8px",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+          color: "#1e293b",
+          fontSize: "14px",
+        }}>
+          Restaurants found: {restaurants.length}
+        </div>
       </div>
+      {placesError && (
+        <div className="places-error-banner">
+          {placesError}
+          <button onClick={() => setPlacesError(null)} aria-label="Dismiss">x</button>
+        </div>
+      )}
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={currentPosition}
