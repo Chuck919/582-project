@@ -16,7 +16,6 @@ export default function DealForm({ restaurantId = "", onSuccess, onError }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [link, setLink] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -25,14 +24,19 @@ export default function DealForm({ restaurantId = "", onSuccess, onError }) {
     setError("");
 
     if (!title || !description || !price) {
-      setError("Please fill in title, description and price.");
+      setError("Please fill in title, description, and price.");
+      return;
+    }
+
+    const priceNum = parseFloat(price);
+    if (isNaN(priceNum) || priceNum <= 0) {
+      setError("Price must be a positive number.");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const priceNum = parseFloat(price);
       const dealInput = {
         title: title.trim(),
         description: description.trim(),

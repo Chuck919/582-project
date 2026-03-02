@@ -107,6 +107,7 @@ function App() {
 
       if (error) {
         console.error('Error fetching deals:', error);
+        alert('Failed to fetch deals. Please try again later.'); // Added user feedback
         return;
       }
 
@@ -122,11 +123,21 @@ function App() {
       console.log('Fetched deals:', dealsByRestaurant);
     } catch (error) {
       console.error('Error fetching deals:', error);
+      alert('An unexpected error occurred while fetching deals.'); // Added user feedback
     }
   };
 
   useEffect(() => {
-    fetchDeals();
+    const loadDeals = async () => {
+      try {
+        const dealsByRestaurant = await fetchDeals();
+        setDeals(dealsByRestaurant);
+      } catch (error) {
+        alert('An error occurred while loading deals.');
+      }
+    };
+
+    loadDeals();
   }, []);
 
   // Create user location marker with AdvancedMarkerElement
