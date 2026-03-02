@@ -80,7 +80,6 @@
   margin: 0;
 }
 
-.deals-loading,
 .no-deals {
   color: #666;
   font-style: italic;
@@ -88,29 +87,7 @@
   margin: 10px 0;
 }
 
-.deals-section {
-  margin-top: 15px;
-  text-align: left;
-}
-
-.deals-section h3 {
-  margin-bottom: 10px;
-  color: #2563eb;
-}
-
-.deal-item {
-  background: #f8fafc;
-  padding: 10px;
-  margin-bottom: 8px;
-  border-radius: 4px;
-  border-left: 3px solid #2563eb;
-}
-
-.deal-item p {
-  margin: 5px 0;
-  font-size: 14px;
-}
-/* additional styling for the form that appears in the modal */
+/* styling for the form that appears in the modal */
 .deal-form-section {
   margin-top: 20px;
   text-align: left;
