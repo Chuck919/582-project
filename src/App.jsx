@@ -6,6 +6,7 @@ import { fetchDeals } from "./utils/deals";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
+import UserProfile from "./components/UserProfile";
 import "./App.css";
 import SearchBar from "./components/SearchBar";
 
@@ -67,11 +68,12 @@ function App() {
   const [deals, setDeals] = useState({});
   const [dealsError, setDealsError] = useState(null);
   const [map, setMap] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -276,6 +278,18 @@ function App() {
     [map]
   );
 
+  /** Navigate from profile to a restaurant on the map. */
+  const handleNavigateToRestaurant = useCallback(
+    (restaurantId) => {
+      const restaurant = restaurants.find((r) => r.place_id === restaurantId);
+      if (restaurant) {
+        handleResultSelect(restaurant);
+      }
+      setShowProfile(false);
+    },
+    [restaurants, handleResultSelect]
+  );
+
   if (loadError) return (
     <ErrorScreen
       title="Map Unavailable"
@@ -306,7 +320,7 @@ function App() {
         alignItems: "center",
         gap: "12px",
       }}>
-        <AuthHeader />
+        <AuthHeader onOpenProfile={() => setShowProfile(true)} />
         <div style={{
           background: "white",
           padding: "10px 14px",
@@ -353,6 +367,13 @@ function App() {
         refreshDeals={refreshDeals}
       />
     </GoogleMap>
+
+    {showProfile && user && (
+      <UserProfile
+        onClose={() => setShowProfile(false)}
+        onNavigate={handleNavigateToRestaurant}
+      />
+    )}
     </>
   );
 }

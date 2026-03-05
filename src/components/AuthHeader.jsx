@@ -9,7 +9,7 @@ const headerStyle = {
   alignItems: "center",
 };
 
-export default function AuthHeader() {
+export default function AuthHeader({ onOpenProfile }) {
   const { user, signOut, isLoggedIn, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
@@ -30,6 +30,13 @@ export default function AuthHeader() {
               <span className="auth-header-user" title={user?.email}>
                 {user?.email}
               </span>
+              <button
+                type="button"
+                onClick={onOpenProfile}
+                className="auth-header-btn auth-header-btn-ghost"
+              >
+                Profile
+              </button>
               <button
                 type="button"
                 onClick={signOut}

@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import "./RestaurantInfoModal.css";
 import DealForm from "./DealForm";
 import { useAuth } from "../contexts/useAuth";
+import { checkIsFavorite, addFavorite, removeFavorite } from "../utils/favorites";
 
 function formatDate(dateString) {
   if (!dateString) return "N/A";
@@ -13,6 +15,34 @@ function formatDate(dateString) {
 
 function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
   const { user } = useAuth();
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  useEffect(() => {
+    if (!user || !restaurant) return;
+    setIsFavorited(false);
+    checkIsFavorite(user.id, restaurant.place_id)
+      .then(setIsFavorited)
+      .catch(console.error);
+  }, [user, restaurant?.place_id]);
+
+  const handleToggleFavorite = async () => {
+    if (!user || favoriteLoading) return;
+    setFavoriteLoading(true);
+    try {
+      if (isFavorited) {
+        await removeFavorite(user.id, restaurant.place_id);
+        setIsFavorited(false);
+      } else {
+        await addFavorite(user.id, restaurant.place_id);
+        setIsFavorited(true);
+      }
+    } catch (err) {
+      console.error("Failed to update favorite:", err);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
 
   if (!restaurant) return null;
 
@@ -29,6 +59,17 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
         <h2>{restaurant.name}</h2>
         <p>Rating: {restaurant.rating || "N/A"}</p>
         <p>Cuisine: {cuisineLabel}</p>
+
+        {user && (
+          <button
+            className={`favorite-btn${isFavorited ? " favorite-btn--active" : ""}`}
+            onClick={handleToggleFavorite}
+            disabled={favoriteLoading}
+            aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
+          >
+            {isFavorited ? "♥ Saved" : "♡ Save"}
+          </button>
+        )}
 
         <div className="deal-form-section">
           <h3>Submit a Deal</h3>
