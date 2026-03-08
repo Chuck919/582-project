@@ -1,7 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useAuth } from "../contexts/useAuth";
-import { fetchFavorites, removeFavorite } from "../utils/favorites";
 import "./UserProfile.css";
+
+const CUISINE_OPTIONS = [
+  "Italian", "Chinese", "Japanese", "Mexican", "Indian",
+  "American", "Thai", "Mediterranean", "French", "Korean",
+  "Vietnamese", "Greek", "Spanish", "Middle Eastern", "Caribbean",
+];
+
+const PREFS_KEY = "user_preferences";
+
+function loadPreferences() {
+  try {
+    const stored = localStorage.getItem(PREFS_KEY);
+    return stored ? JSON.parse(stored) : { cuisines: [] };
+  } catch {
+    return { cuisines: [] };
+  }
+}
 
 function getInitials(email) {
   if (!email) return "?";
@@ -16,38 +32,24 @@ function formatJoinDate(dateString) {
   });
 }
 
-export default function UserProfile({ onClose, onNavigate }) {
+export default function UserProfile({ onClose }) {
   const { user } = useAuth();
-  const [favorites, setFavorites] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [preferences, setPreferences] = useState(loadPreferences);
+  const [saved, setSaved] = useState(false);
 
-  const loadFavorites = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchFavorites(user.id);
-      setFavorites(data);
-    } catch (err) {
-      console.error("Failed to load favorites:", err);
-      setError("Could not load favorites. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
+  const toggleCuisine = (cuisine) => {
+    setPreferences((prev) => {
+      const cuisines = prev.cuisines.includes(cuisine)
+        ? prev.cuisines.filter((c) => c !== cuisine)
+        : [...prev.cuisines, cuisine];
+      return { ...prev, cuisines };
+    });
+    setSaved(false);
+  };
 
-  useEffect(() => {
-    loadFavorites();
-  }, [loadFavorites]);
-
-  const handleRemoveFavorite = async (restaurantId) => {
-    try {
-      await removeFavorite(user.id, restaurantId);
-      setFavorites((prev) => prev.filter((f) => f.restaurant_id !== restaurantId));
-    } catch (err) {
-      console.error("Failed to remove favorite:", err);
-    }
+  const handleSave = () => {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(preferences));
+    setSaved(true);
   };
 
   const username = user?.user_metadata?.username;
@@ -78,73 +80,24 @@ export default function UserProfile({ onClose, onNavigate }) {
           </div>
         </div>
 
-        <div className="profile-favorites-section">
-          <h3 className="profile-section-title">
-            Favorite Restaurants
-            {!loading && (
-              <span className="profile-favorites-count">{favorites.length}</span>
-            )}
-          </h3>
-
-          {loading && <p className="profile-state-msg">Loading favorites…</p>}
-          {error && <p className="profile-state-msg profile-state-error">{error}</p>}
-
-          {!loading && !error && favorites.length === 0 && (
-            <div className="profile-empty">
-              <p>No favorite restaurants yet.</p>
-              <p className="profile-empty-hint">
-                Open a restaurant on the map and tap the ♡ Save button to add it here.
-              </p>
-            </div>
-          )}
-
-          {!loading && favorites.length > 0 && (
-            <ul className="profile-favorites-list">
-              {favorites.map((fav) => {
-                const restaurant = fav.restaurants;
-                const cuisineLabel =
-                  restaurant?.cuisine?.length
-                    ? restaurant.cuisine.join(", ")
-                    : null;
-                return (
-                  <li key={fav.restaurant_id} className="profile-favorite-card">
-                    <div className="profile-favorite-info">
-                      <span className="profile-favorite-name">
-                        {restaurant?.name ?? fav.restaurant_id}
-                      </span>
-                      {cuisineLabel && (
-                        <span className="profile-favorite-cuisine">{cuisineLabel}</span>
-                      )}
-                      {restaurant?.rating != null && (
-                        <span className="profile-favorite-rating">
-                          ★ {Number(restaurant.rating).toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="profile-favorite-actions">
-                      {onNavigate && (
-                        <button
-                          className="profile-btn-navigate"
-                          onClick={() => onNavigate(fav.restaurant_id)}
-                          title="View on map"
-                        >
-                          View on map
-                        </button>
-                      )}
-                      <button
-                        className="profile-btn-remove"
-                        onClick={() => handleRemoveFavorite(fav.restaurant_id)}
-                        title="Remove from favorites"
-                        aria-label={`Remove ${restaurant?.name ?? "restaurant"} from favorites`}
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+        <div className="profile-preferences-section">
+          <h3 className="profile-section-title">Preferences</h3>
+          <p className="profile-prefs-label">Preferred Cuisines</p>
+          <div className="profile-cuisine-grid">
+            {CUISINE_OPTIONS.map((cuisine) => (
+              <button
+                key={cuisine}
+                type="button"
+                className={`profile-cuisine-chip${preferences.cuisines.includes(cuisine) ? " profile-cuisine-chip--active" : ""}`}
+                onClick={() => toggleCuisine(cuisine)}
+              >
+                {cuisine}
+              </button>
+            ))}
+          </div>
+          <button className="profile-btn-save" onClick={handleSave}>
+            {saved ? "Saved ✓" : "Save Preferences"}
+          </button>
         </div>
       </div>
     </div>

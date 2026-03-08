@@ -278,18 +278,6 @@ function App() {
     [map]
   );
 
-  /** Navigate from profile to a restaurant on the map. */
-  const handleNavigateToRestaurant = useCallback(
-    (restaurantId) => {
-      const restaurant = restaurants.find((r) => r.place_id === restaurantId);
-      if (restaurant) {
-        handleResultSelect(restaurant);
-      }
-      setShowProfile(false);
-    },
-    [restaurants, handleResultSelect]
-  );
-
   if (loadError) return (
     <ErrorScreen
       title="Map Unavailable"
@@ -371,7 +359,6 @@ function App() {
     {showProfile && user && (
       <UserProfile
         onClose={() => setShowProfile(false)}
-        onNavigate={handleNavigateToRestaurant}
       />
     )}
     </>

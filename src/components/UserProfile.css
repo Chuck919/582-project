@@ -138,170 +138,85 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
-/* ── Favorites section ──────────────────── */
+/* ── Preferences section ────────────────── */
 
-.profile-favorites-section {
+.profile-preferences-section {
   padding: 20px;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .profile-section-title {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 0.9375rem;
   font-weight: 600;
   color: #1e293b;
+}
+
+.profile-prefs-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.profile-cuisine-grid {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.profile-favorites-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 11px;
-  background: #003F88;
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.profile-state-msg {
-  font-size: 0.875rem;
-  color: #64748b;
-  text-align: center;
-  padding: 24px 0;
-  margin: 0;
-}
-
-.profile-state-error {
-  color: #b91c1c;
-}
-
-.profile-empty {
-  text-align: center;
-  padding: 32px 16px;
-  color: #64748b;
-}
-
-.profile-empty p {
-  margin: 0 0 8px;
-  font-size: 0.9375rem;
-}
-
-.profile-empty-hint {
-  font-size: 0.8125rem !important;
-  color: #94a3b8;
-  line-height: 1.5;
-}
-
-/* ── Favorites list ─────────────────────── */
-
-.profile-favorites-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.profile-favorite-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  transition: box-shadow 0.15s, border-color 0.15s;
-}
-
-.profile-favorite-card:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0, 41, 107, 0.07);
-}
-
-.profile-favorite-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.profile-favorite-name {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: #1e293b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.profile-favorite-cuisine {
-  font-size: 0.8125rem;
-  color: #64748b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.profile-favorite-rating {
-  font-size: 0.8125rem;
-  color: #d97706;
-  font-weight: 500;
-}
-
-.profile-favorite-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.profile-btn-navigate {
-  padding: 5px 10px;
-  border: 1px solid #003F88;
-  border-radius: 6px;
+.profile-cuisine-chip {
+  padding: 5px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 20px;
   background: transparent;
-  color: #003F88;
+  color: #475569;
   font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
-}
-
-.profile-btn-navigate:hover {
-  background: #003F88;
-  color: #fff;
-}
-
-.profile-btn-remove {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: transparent;
-  color: #94a3b8;
-  font-size: 1.125rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.profile-btn-remove:hover {
-  background: #fef2f2;
-  color: #b91c1c;
-  border-color: #fecaca;
+.profile-cuisine-chip:hover {
+  border-color: #003F88;
+  color: #003F88;
+}
+
+.profile-cuisine-chip--active {
+  background: #003F88;
+  border-color: #003F88;
+  color: #fff;
+}
+
+.profile-cuisine-chip--active:hover {
+  background: #00296B;
+  border-color: #00296B;
+}
+
+.profile-btn-save {
+  align-self: flex-start;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #FDC500;
+  color: #00296B;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.profile-btn-save:hover {
+  background: #FFD500;
+}
+
+.profile-btn-save:active {
+  transform: scale(0.97);
 }
 
 /* ── Responsive ─────────────────────────── */
@@ -309,10 +224,5 @@
 @media (max-width: 480px) {
   .profile-panel {
     width: 100vw;
-  }
-
-  .profile-btn-navigate {
-    font-size: 0.75rem;
-    padding: 4px 8px;
   }
 }
