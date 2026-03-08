@@ -6,6 +6,7 @@ import { fetchDeals } from "./utils/deals";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
+import UserProfile from "./components/UserProfile";
 import "./App.css";
 import SearchBar from "./components/SearchBar";
 
@@ -60,6 +61,15 @@ function fuzzyMatch(query, name) {
   );
 }
 
+function loadSavedPrefs() {
+  try {
+    const stored = localStorage.getItem("user_preferences");
+    return stored ? JSON.parse(stored) : { searchRadius: 5 };
+  } catch {
+    return { searchRadius: 5 };
+  }
+}
+
 function App() {
   const { user } = useAuth();
   const [currentPosition, setCurrentPosition] = useState(null);
@@ -67,11 +77,13 @@ function App() {
   const [deals, setDeals] = useState({});
   const [dealsError, setDealsError] = useState(null);
   const [map, setMap] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
+
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -168,7 +180,7 @@ function App() {
         fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
         locationRestriction: {
           center: currentPosition,
-          radius: 10000, // 10km radius
+          radius: Math.round(loadSavedPrefs().searchRadius * 1609.34),
         },
         includedTypes: ["restaurant"],
         maxResultCount: 20,
@@ -306,15 +318,8 @@ function App() {
         alignItems: "center",
         gap: "12px",
       }}>
-        <AuthHeader />
-        <div style={{
-          background: "white",
-          padding: "10px 14px",
-          borderRadius: "8px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-          color: "#1e293b",
-          fontSize: "14px",
-        }}>
+        <AuthHeader onOpenProfile={() => setShowProfile(true)} />
+        <div className="restaurants-found-badge">
           Restaurants found: {restaurants.length}
         </div>
       </div>
@@ -353,6 +358,12 @@ function App() {
         refreshDeals={refreshDeals}
       />
     </GoogleMap>
+
+    {showProfile && user && (
+      <UserProfile
+        onClose={() => setShowProfile(false)}
+      />
+    )}
     </>
   );
 }

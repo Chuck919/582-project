@@ -1,6 +1,6 @@
+import { useAuth } from "../contexts/useAuth";
 import "./RestaurantInfoModal.css";
 import DealForm from "./DealForm";
-import { useAuth } from "../contexts/useAuth";
 
 function formatDate(dateString) {
   if (!dateString) return "N/A";
