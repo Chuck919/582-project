@@ -61,6 +61,15 @@ function fuzzyMatch(query, name) {
   );
 }
 
+function loadSavedPrefs() {
+  try {
+    const stored = localStorage.getItem("user_preferences");
+    return stored ? JSON.parse(stored) : { searchRadius: 5 };
+  } catch {
+    return { searchRadius: 5 };
+  }
+}
+
 function App() {
   const { user } = useAuth();
   const [currentPosition, setCurrentPosition] = useState(null);
@@ -74,6 +83,7 @@ function App() {
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [showProfile, setShowProfile] = useState(false);
+
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -170,7 +180,7 @@ function App() {
         fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
         locationRestriction: {
           center: currentPosition,
-          radius: 10000, // 10km radius
+          radius: Math.round(loadSavedPrefs().searchRadius * 1609.34),
         },
         includedTypes: ["restaurant"],
         maxResultCount: 20,
@@ -309,14 +319,7 @@ function App() {
         gap: "12px",
       }}>
         <AuthHeader onOpenProfile={() => setShowProfile(true)} />
-        <div style={{
-          background: "white",
-          padding: "10px 14px",
-          borderRadius: "8px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-          color: "#1e293b",
-          fontSize: "14px",
-        }}>
+        <div className="restaurants-found-badge">
           Restaurants found: {restaurants.length}
         </div>
       </div>

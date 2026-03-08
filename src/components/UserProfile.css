@@ -94,21 +94,6 @@
   background: linear-gradient(135deg, #00296B 0%, #003F88 100%);
 }
 
-.profile-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #FDC500;
-  color: #00296B;
-  font-size: 1.5rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  user-select: none;
-}
-
 .profile-user-info {
   display: flex;
   flex-direction: column;
@@ -138,6 +123,57 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
+/* ── Avatar button (clickable) ──────────── */
+
+.profile-avatar-btn {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #FDC500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-avatar-initials {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #00296B;
+  user-select: none;
+}
+
+.profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.profile-avatar-btn:hover .profile-avatar-overlay {
+  opacity: 1;
+}
+
 /* ── Preferences section ────────────────── */
 
 .profile-preferences-section {
@@ -145,7 +181,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .profile-section-title {
@@ -155,68 +191,97 @@
   color: #1e293b;
 }
 
-.profile-prefs-label {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.profile-cuisine-grid {
+/* Row layout: label + control side-by-side */
+.profile-pref-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.profile-cuisine-chip {
-  padding: 5px 12px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 20px;
-  background: transparent;
-  color: #475569;
+/* Column layout: label row above slider */
+.profile-pref-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-pref-label-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.profile-pref-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.profile-pref-hint {
   font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  color: #64748b;
 }
 
-.profile-cuisine-chip:hover {
-  border-color: #003F88;
+.profile-pref-value {
+  font-size: 0.875rem;
+  font-weight: 700;
   color: #003F88;
 }
 
-.profile-cuisine-chip--active {
+/* ── Range slider ───────────────────────── */
+
+.profile-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    #003F88 0%,
+    #003F88 calc((var(--val, 5) - 1) / 14 * 100%),
+    #e2e8f0 calc((var(--val, 5) - 1) / 14 * 100%),
+    #e2e8f0 100%
+  );
+  outline: none;
+  cursor: pointer;
+}
+
+.profile-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   background: #003F88;
-  border-color: #003F88;
-  color: #fff;
-}
-
-.profile-cuisine-chip--active:hover {
-  background: #00296B;
-  border-color: #00296B;
-}
-
-.profile-btn-save {
-  align-self: flex-start;
-  padding: 8px 20px;
-  border: none;
-  border-radius: 8px;
-  background: #FDC500;
-  color: #00296B;
-  font-size: 0.875rem;
-  font-weight: 600;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 41, 107, 0.3);
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
 }
 
-.profile-btn-save:hover {
-  background: #FFD500;
+.profile-slider::-webkit-slider-thumb:hover {
+  background: #00296B;
+  transform: scale(1.15);
 }
 
-.profile-btn-save:active {
-  transform: scale(0.97);
+.profile-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #003F88;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 41, 107, 0.3);
+  cursor: pointer;
+}
+
+.profile-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #94a3b8;
 }
 
 /* ── Responsive ─────────────────────────── */

@@ -1,21 +1,18 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "../contexts/useAuth";
 import "./UserProfile.css";
 
-const CUISINE_OPTIONS = [
-  "Italian", "Chinese", "Japanese", "Mexican", "Indian",
-  "American", "Thai", "Mediterranean", "French", "Korean",
-  "Vietnamese", "Greek", "Spanish", "Middle Eastern", "Caribbean",
-];
-
 const PREFS_KEY = "user_preferences";
+const AVATAR_KEY = "user_avatar";
 
 function loadPreferences() {
   try {
     const stored = localStorage.getItem(PREFS_KEY);
-    return stored ? JSON.parse(stored) : { cuisines: [] };
+    return stored
+      ? JSON.parse(stored)
+      : { searchRadius: 5 };
   } catch {
-    return { cuisines: [] };
+    return { searchRadius: 5 };
   }
 }
 
@@ -35,21 +32,31 @@ function formatJoinDate(dateString) {
 export default function UserProfile({ onClose }) {
   const { user } = useAuth();
   const [preferences, setPreferences] = useState(loadPreferences);
-  const [saved, setSaved] = useState(false);
+  const [avatar, setAvatar] = useState(() => localStorage.getItem(AVATAR_KEY) || null);
+  const fileInputRef = useRef(null);
 
-  const toggleCuisine = (cuisine) => {
-    setPreferences((prev) => {
-      const cuisines = prev.cuisines.includes(cuisine)
-        ? prev.cuisines.filter((c) => c !== cuisine)
-        : [...prev.cuisines, cuisine];
-      return { ...prev, cuisines };
-    });
-    setSaved(false);
+  const savePrefs = (updated) => {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(updated));
   };
 
-  const handleSave = () => {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(preferences));
-    setSaved(true);
+  const handleAvatarClick = () => fileInputRef.current?.click();
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setAvatar(ev.target.result);
+      localStorage.setItem(AVATAR_KEY, ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRadiusChange = (e) => {
+    const updated = { ...preferences, searchRadius: Number(e.target.value) };
+    setPreferences(updated);
+    savePrefs(updated);
   };
 
   const username = user?.user_metadata?.username;
@@ -70,9 +77,25 @@ export default function UserProfile({ onClose }) {
         </div>
 
         <div className="profile-user-section">
-          <div className="profile-avatar" aria-hidden="true">
-            {getInitials(user?.email)}
-          </div>
+          <button
+            className="profile-avatar-btn"
+            onClick={handleAvatarClick}
+            title="Change profile picture"
+            aria-label="Change profile picture"
+          >
+            {avatar
+              ? <img src={avatar} alt="Profile" className="profile-avatar-img" />
+              : <span className="profile-avatar-initials">{getInitials(user?.email)}</span>
+            }
+            <span className="profile-avatar-overlay">Edit</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={handleAvatarChange}
+          />
           <div className="profile-user-info">
             {username && <p className="profile-username">{username}</p>}
             <p className="profile-email" title={user?.email}>{user?.email}</p>
@@ -82,22 +105,31 @@ export default function UserProfile({ onClose }) {
 
         <div className="profile-preferences-section">
           <h3 className="profile-section-title">Preferences</h3>
-          <p className="profile-prefs-label">Preferred Cuisines</p>
-          <div className="profile-cuisine-grid">
-            {CUISINE_OPTIONS.map((cuisine) => (
-              <button
-                key={cuisine}
-                type="button"
-                className={`profile-cuisine-chip${preferences.cuisines.includes(cuisine) ? " profile-cuisine-chip--active" : ""}`}
-                onClick={() => toggleCuisine(cuisine)}
-              >
-                {cuisine}
-              </button>
-            ))}
+
+          {/* Search radius */}
+          <div className="profile-pref-col">
+            <div className="profile-pref-label-group">
+              <span className="profile-pref-label">Search Radius</span>
+              <span className="profile-pref-value">{preferences.searchRadius} mi</span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={15}
+              step={1}
+              value={preferences.searchRadius}
+              onChange={handleRadiusChange}
+              className="profile-slider"
+              style={{ "--val": preferences.searchRadius }}
+              aria-label="Search radius in miles"
+            />
+            <div className="profile-slider-labels">
+              <span>1 mi</span>
+              <span>15 mi</span>
+            </div>
           </div>
-          <button className="profile-btn-save" onClick={handleSave}>
-            {saved ? "Saved ✓" : "Save Preferences"}
-          </button>
+
+
         </div>
       </div>
     </div>
