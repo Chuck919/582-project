@@ -310,19 +310,11 @@ function App() {
         onToggle={handleSidebarToggle}
       />
 
-      {/* Map/Satellite toggle — slides right when sidebar opens */}
-      <div style={{
-        position: "fixed",
-        top: "10px",
-        left: sidebarOpen ? "322px" : "42px",
-        transition: "left 0.25s ease",
-        zIndex: 1000,
-        display: "flex",
-        borderRadius: "2px",
-        overflow: "hidden",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-        background: "#fff",
-      }}>
+      {/* Map/Satellite toggle — slides right when sidebar opens (desktop only) */}
+      <div
+        className="map-type-toggle"
+        style={{ "--map-toggle-left": sidebarOpen ? "322px" : "42px" }}
+      >
         {["roadmap", "satellite"].map((type) => (
           <button
             key={type}

@@ -1,3 +1,25 @@
+/* ── Map/Satellite toggle ───────────────────────────────────────────── */
+.map-type-toggle {
+  position: fixed;
+  top: 10px;
+  left: var(--map-toggle-left, 42px);
+  transition: left 0.25s ease;
+  z-index: 1000;
+  display: flex;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  background: #fff;
+}
+
+/* On mobile the sidebar slides up from the bottom, so don't shift the toggle */
+@media (max-width: 640px) {
+  .map-type-toggle {
+    left: 10px !important;
+    transition: none;
+  }
+}
+
 .places-error-banner {
   position: absolute;
   top: 60px;
