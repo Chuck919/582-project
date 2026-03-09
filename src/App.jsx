@@ -8,6 +8,7 @@ import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
 import "./App.css";
 import SearchBar from "./components/SearchBar";
+import Sidebar from "./components/Sidebar";
 
 const containerStyle = {
   width: "100vw",
@@ -72,6 +73,8 @@ function App() {
   const [locationError, setLocationError] = useState(null);
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mapType, setMapType] = useState("roadmap");
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -263,6 +266,8 @@ function App() {
     [restaurants]
   );
 
+  const handleSidebarToggle = useCallback(() => setSidebarOpen((prev) => !prev), []);
+
   /** Pan map to selected result and open the info modal. */
   const handleResultSelect = useCallback(
     (restaurant) => {
@@ -296,6 +301,39 @@ function App() {
         currentPosition={currentPosition}
         nearbyRestaurants={restaurants}
       />
+
+      <Sidebar
+        restaurants={restaurants}
+        onRestaurantSelect={handleResultSelect}
+        deals={deals}
+        isOpen={sidebarOpen}
+        onToggle={handleSidebarToggle}
+      />
+
+      {/* Map/Satellite toggle — slides right when sidebar opens (desktop only) */}
+      <div
+        className="map-type-toggle"
+        style={{ "--map-toggle-left": sidebarOpen ? "322px" : "42px" }}
+      >
+        {["roadmap", "satellite"].map((type) => (
+          <button
+            key={type}
+            onClick={() => setMapType(type)}
+            style={{
+              padding: "6px 12px",
+              background: mapType === type ? "#e8e8e8" : "#fff",
+              border: "none",
+              borderLeft: type === "satellite" ? "1px solid #ddd" : "none",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: mapType === type ? "600" : "400",
+              color: "#333",
+            }}
+          >
+            {type === "roadmap" ? "Map" : "Satellite"}
+          </button>
+        ))}
+      </div>
 
       <div style={{
         position: "absolute",
@@ -339,6 +377,8 @@ function App() {
         options={{
           mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
           disableDefaultUI: false,
+          mapTypeControl: false,
+          mapTypeId: mapType,
         }}
       >
       {/* User location marker now handled by AdvancedMarkerElement in useEffect */}
