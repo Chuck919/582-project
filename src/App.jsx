@@ -1,5 +1,5 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./contexts/useAuth";
 import { fetchDeals } from "./utils/deals";
@@ -82,7 +82,7 @@ function App() {
   });
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
+    const watchId = navigator.geolocation.watchPosition(
       (position) => {
         setCurrentPosition({
           lat: position.coords.latitude,
@@ -98,8 +98,19 @@ function App() {
         const message = messages[error.code] || "An unknown error occurred while retrieving your location.";
         console.error(`Geolocation error (code ${error.code}):`, message, error);
         setLocationError(message);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 15000,
+        timeout: 20000,
       }
     );
+
+    return () => {
+      if (watchId != null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
   }, []);
 
   // Fetch deals from Supabase and update state.
@@ -248,6 +259,35 @@ function App() {
       });
   }, [user, restaurants]);
 
+  const restaurantsWithDistance = useMemo(() => {
+    if (!currentPosition) return restaurants;
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const earthRadiusMeters = 6371000;
+    return restaurants.map((restaurant) => {
+      const location = restaurant.geometry?.location;
+      const lat = typeof location?.lat === "function" ? location.lat() : location?.lat;
+      const lng = typeof location?.lng === "function" ? location.lng() : location?.lng;
+      if (typeof lat !== "number" || typeof lng !== "number") {
+        return { ...restaurant, distanceMeters: Number.POSITIVE_INFINITY, distanceMiles: null };
+      }
+      const dLat = toRad(lat - currentPosition.lat);
+      const dLng = toRad(lng - currentPosition.lng);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(currentPosition.lat)) *
+          Math.cos(toRad(lat)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distanceMeters = earthRadiusMeters * c;
+      return {
+        ...restaurant,
+        distanceMeters,
+        distanceMiles: distanceMeters / 1609.344,
+      };
+    });
+  }, [restaurants, currentPosition]);
+
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
   };
@@ -303,7 +343,7 @@ function App() {
       />
 
       <Sidebar
-        restaurants={restaurants}
+        restaurants={restaurantsWithDistance}
         onRestaurantSelect={handleResultSelect}
         deals={deals}
         isOpen={sidebarOpen}
