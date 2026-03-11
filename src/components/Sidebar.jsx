@@ -3,15 +3,23 @@ import "./Sidebar.css";
 
 function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle }) {
   const [sortBy, setSortBy] = useState("distance");
+  const [showDeals, setShowDeals] = useState(false);
 
   const sortedRestaurants = useMemo(() => {
     return [...restaurants].sort((a, b) => {
+      const aHasDeals = deals[a.place_id]?.length > 0;
+      const bHasDeals = deals[b.place_id]?.length > 0;
+      if (showDeals) {
+        if (aHasDeals !== bHasDeals) {
+          return aHasDeals ? -1 : 1;
+        }
+      }
       const aDist = Number.isFinite(a.distanceMeters) ? a.distanceMeters : Number.POSITIVE_INFINITY;
       const bDist = Number.isFinite(b.distanceMeters) ? b.distanceMeters : Number.POSITIVE_INFINITY;
       if (aDist !== bDist) return aDist - bDist;
       return (a.name || "").localeCompare(b.name || "");
     });
-  }, [restaurants, sortBy]);
+  }, [restaurants, sortBy, showDeals, deals]);
 
   return (
     <aside
@@ -35,6 +43,14 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle }) {
             <span className="sidebar-count">{sortedRestaurants.length}</span>
           </div>
           <div className="sidebar-controls">
+            <button 
+              id = "sidebar-deals-btn"
+              className={`sidebar-deals-btn ${showDeals ? 'sidebar-deals-btn--active' : ''}`}
+              onClick={() => setShowDeals(!showDeals)}
+              
+            >
+              Deals
+            </button>
             <select
               id="sidebar-sort"
               className="sidebar-sort"
