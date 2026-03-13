@@ -1,6 +1,20 @@
+import { useMemo, useState } from "react";
 import "./Sidebar.css";
 
 function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle }) {
+  const [sortBy, setSortBy] = useState("distance");
+
+  const sortedRestaurants = useMemo(() => {
+    return [...restaurants].sort((a, b) => {
+      if (sortBy === "distance") {
+        const aDist = Number.isFinite(a.distanceMeters) ? a.distanceMeters : Number.POSITIVE_INFINITY;
+        const bDist = Number.isFinite(b.distanceMeters) ? b.distanceMeters : Number.POSITIVE_INFINITY;
+        if (aDist !== bDist) return aDist - bDist;
+      }
+      return (a.name || "").localeCompare(b.name || "");
+    });
+  }, [restaurants, sortBy]);
+
   return (
     <aside
       className={`sidebar ${isOpen ? "sidebar--open" : ""}`}
@@ -18,13 +32,29 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle }) {
       </button>
       <div id="sidebar-panel" className="sidebar-content">
         <div className="sidebar-header">
-          <h2 className="sidebar-title">Nearby Restaurants</h2>
-          <span className="sidebar-count">{restaurants.length}</span>
+          <div className="sidebar-title-group">
+            <h2 className="sidebar-title">Nearby Restaurants</h2>
+            <span className="sidebar-count">{sortedRestaurants.length}</span>
+          </div>
+          <div className="sidebar-controls">
+            <select
+              id="sidebar-sort"
+              className="sidebar-sort"
+              aria-label="Sort restaurants"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="distance">Distance</option>
+            </select>
+          </div>
         </div>
-        {restaurants.length > 0 ? (
+        {sortedRestaurants.length > 0 ? (
           <ul className="sidebar-list">
-            {restaurants.map((r) => {
+            {sortedRestaurants.map((r) => {
               const dealCount = deals[r.place_id]?.length ?? 0;
+              const distanceLabel = Number.isFinite(r.distanceMiles)
+                ? (r.distanceMiles < 0.1 ? "< 0.1 mi" : `${r.distanceMiles.toFixed(1)} mi`)
+                : null;
               return (
                 <li key={r.place_id} className="sidebar-item">
                   <button
@@ -32,9 +62,19 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle }) {
                     onClick={() => onRestaurantSelect(r)}
                   >
                     <span className="sidebar-item-name">{r.name}</span>
-                    {r.rating && (
-                      <span className="sidebar-item-rating">★ {r.rating}</span>
-                    )}
+                    <div className="sidebar-item-meta">
+                      {r.rating && (
+                        <span className="sidebar-item-rating">★ {r.rating}</span>
+                      )}
+                      {distanceLabel && (
+                        <span
+                          className="sidebar-item-distance"
+                          data-distance-miles={r.distanceMiles.toFixed(3)}
+                        >
+                          {distanceLabel}
+                        </span>
+                      )}
+                    </div>
                     {r.vicinity && (
                       <span className="sidebar-item-address">{r.vicinity}</span>
                     )}
