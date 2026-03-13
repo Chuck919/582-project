@@ -71,6 +71,7 @@ function App() {
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [locationWarning, setLocationWarning] = useState(null);
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -82,22 +83,33 @@ function App() {
   });
 
   useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
+        setLocationWarning(null);
         setCurrentPosition({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         });
       },
       (error) => {
-        const messages = {
-          1: "Location access was denied. Please enable location permissions in your browser settings and refresh the page.",
-          2: "Your location could not be determined due to a network or hardware error.",
-          3: "Location request timed out. Please refresh the page and try again.",
-        };
-        const message = messages[error.code] || "An unknown error occurred while retrieving your location.";
-        console.error(`Geolocation error (code ${error.code}):`, message, error);
-        setLocationError(message);
+        console.error(`Geolocation error (code ${error.code}):`, error);
+        if (error.code === 1) {
+          // Permission denied — permanent failure, show fatal screen
+          setLocationError("Location access was denied. Please enable location permissions in your browser settings and refresh the page.");
+        } else {
+          // Codes 2 & 3 are transient — show a dismissible warning, keep the app alive
+          const messages = {
+            2: "Your location could not be determined due to a network or hardware error. Retrying...",
+            3: "Location request timed out. Retrying...",
+          };
+          const message = messages[error.code] || "An unknown error occurred while retrieving your location. Retrying...";
+          setLocationWarning(message);
+        }
       },
       {
         enableHighAccuracy: true,
@@ -107,9 +119,7 @@ function App() {
     );
 
     return () => {
-      if (watchId != null) {
-        navigator.geolocation.clearWatch(watchId);
-      }
+      navigator.geolocation.clearWatch(watchId);
     };
   }, []);
 
@@ -268,6 +278,7 @@ function App() {
       const lat = typeof location?.lat === "function" ? location.lat() : location?.lat;
       const lng = typeof location?.lng === "function" ? location.lng() : location?.lng;
       if (typeof lat !== "number" || typeof lng !== "number") {
+        console.warn(`[restaurantsWithDistance] Missing or invalid coordinates for "${restaurant.name}" (id: ${restaurant.place_id}). location was:`, location);
         return { ...restaurant, distanceMeters: Number.POSITIVE_INFINITY, distanceMiles: null };
       }
       const dLat = toRad(lat - currentPosition.lat);
@@ -396,6 +407,12 @@ function App() {
           Restaurants found: {restaurants.length}
         </div>
       </div>
+      {locationWarning && (
+        <div className="places-error-banner">
+          {locationWarning}
+          <button onClick={() => setLocationWarning(null)} aria-label="Dismiss">x</button>
+        </div>
+      )}
       {placesError && (
         <div className="places-error-banner">
           {placesError}
@@ -424,8 +441,8 @@ function App() {
       {/* User location marker now handled by AdvancedMarkerElement in useEffect */}
       
       {/* Restaurant markers component */}
-      <RestaurantMarkers 
-        restaurants={restaurants} 
+      <RestaurantMarkers
+        restaurants={restaurantsWithDistance}
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
