@@ -3,7 +3,7 @@ import "./Sidebar.css";
 
 function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle }) {
   const [sortBy, setSortBy] = useState("distance");
-  const [showDeals, setShowDeals] = useState(false);
+  const [showDeals, setShowDeals] = useState(true);
 
   const sortedRestaurants = useMemo(() => {
     return [...restaurants].sort((a, b) => {
@@ -14,9 +14,11 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle }) {
           return aHasDeals ? -1 : 1;
         }
       }
-      const aDist = Number.isFinite(a.distanceMeters) ? a.distanceMeters : Number.POSITIVE_INFINITY;
-      const bDist = Number.isFinite(b.distanceMeters) ? b.distanceMeters : Number.POSITIVE_INFINITY;
-      if (aDist !== bDist) return aDist - bDist;
+      if (sortBy == "distance") {
+        const aDist = Number.isFinite(a.distanceMeters) ? a.distanceMeters : Number.POSITIVE_INFINITY;
+        const bDist = Number.isFinite(b.distanceMeters) ? b.distanceMeters : Number.POSITIVE_INFINITY;
+        if (aDist !== bDist) return aDist - bDist;
+      }
       return (a.name || "").localeCompare(b.name || "");
     });
   }, [restaurants, sortBy, showDeals, deals]);
