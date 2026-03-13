@@ -98,3 +98,47 @@
   color: #003F88;
   font-size: 1.1rem;
 }
+
+/* ── Favorite button ─────────────────────────────────────────────── */
+.favorite-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 6px 0 10px;
+  padding: 5px 14px;
+  background: #fff;
+  color: #003f88;
+  border: 1.5px solid #003f88;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.favorite-btn:hover {
+  background: #f0f6ff;
+}
+
+.favorite-btn--active {
+  background: #fdc500;
+  color: #003f88;
+  border-color: #fdc500;
+}
+
+.favorite-btn--active:hover {
+  background: #e6b200;
+  border-color: #e6b200;
+}
+
+.favorite-login-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 4px 0 10px;
+}
+
+.favorite-error {
+  font-size: 0.8rem;
+  color: #dc2626;
+  margin: 4px 0 6px;
+}

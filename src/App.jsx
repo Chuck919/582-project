@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./contexts/useAuth";
 import { fetchDeals } from "./utils/deals";
+import { useFavorites } from "./hooks/useFavorites";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
@@ -63,6 +64,7 @@ function fuzzyMatch(query, name) {
 
 function App() {
   const { user } = useAuth();
+  const { isFavorite, toggleFavorite, favoritesError, dismissFavoritesError } = useFavorites();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
@@ -308,6 +310,40 @@ function App() {
         deals={deals}
         isOpen={sidebarOpen}
         onToggle={handleSidebarToggle}
+        isFavorite={isFavorite}
+      />
+
+      {/* Map/Satellite toggle — slides right when sidebar opens */}
+      <div
+        className="map-type-toggle"
+        style={{ "--map-toggle-left": sidebarOpen ? "322px" : "42px" }}
+      >
+        {["roadmap", "satellite"].map((type) => (
+          <button
+            key={type}
+            onClick={() => setMapType(type)}
+            style={{
+              padding: "6px 12px",
+              background: mapType === type ? "#e8e8e8" : "#fff",
+              border: "none",
+              borderLeft: type === "satellite" ? "1px solid #ddd" : "none",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: mapType === type ? "600" : "400",
+              color: "#333",
+            }}
+          >
+            {type === "roadmap" ? "Map" : "Satellite"}
+          </button>
+        ))}
+      </div>
+
+      <Sidebar
+        restaurants={restaurants}
+        onRestaurantSelect={handleResultSelect}
+        deals={deals}
+        isOpen={sidebarOpen}
+        onToggle={handleSidebarToggle}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens (desktop only) */}
@@ -368,6 +404,12 @@ function App() {
           <button onClick={() => setDealsError(null)} aria-label="Dismiss">x</button>
         </div>
       )}
+      {favoritesError && (
+        <div className="places-error-banner">
+          {favoritesError}
+          <button onClick={dismissFavoritesError} aria-label="Dismiss">x</button>
+        </div>
+      )}
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={currentPosition}
@@ -384,13 +426,15 @@ function App() {
       {/* User location marker now handled by AdvancedMarkerElement in useEffect */}
       
       {/* Restaurant markers component */}
-      <RestaurantMarkers 
-        restaurants={restaurants} 
+      <RestaurantMarkers
+        restaurants={restaurants}
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
         deals={deals}
         refreshDeals={refreshDeals}
+        isFavorite={isFavorite}
+        toggleFavorite={toggleFavorite}
       />
     </GoogleMap>
     </>
