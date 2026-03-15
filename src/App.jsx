@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./contexts/useAuth";
 import { fetchDeals } from "./utils/deals";
+import { useFavorites } from "./hooks/useFavorites";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
@@ -63,6 +64,7 @@ function fuzzyMatch(query, name) {
 
 function App() {
   const { user } = useAuth();
+  const { isFavorite, toggleFavorite, favoritesError, dismissFavoritesError } = useFavorites();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
@@ -392,9 +394,10 @@ function App() {
         deals={deals}
         isOpen={sidebarOpen}
         onToggle={handleSidebarToggle}
+        isFavorite={isFavorite}
       />
 
-      {/* Map/Satellite toggle — slides right when sidebar opens (desktop only) */}
+      {/* Map/Satellite toggle — slides right when sidebar opens */}
       <div
         className="map-type-toggle"
         style={{ "--map-toggle-left": sidebarOpen ? "400px" : "42px" }}
@@ -458,6 +461,12 @@ function App() {
           <button onClick={() => setDealsError(null)} aria-label="Dismiss">x</button>
         </div>
       )}
+      {favoritesError && (
+        <div className="places-error-banner">
+          {favoritesError}
+          <button onClick={dismissFavoritesError} aria-label="Dismiss">x</button>
+        </div>
+      )}
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={currentPosition}
@@ -482,6 +491,8 @@ function App() {
         deals={deals}
         hasActiveDealsByPlaceId={hasActiveDealsByPlaceId}
         refreshDeals={refreshDeals}
+        isFavorite={isFavorite}
+        toggleFavorite={toggleFavorite}
       />
     </GoogleMap>
     </>

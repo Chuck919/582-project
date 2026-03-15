@@ -37,6 +37,7 @@
   font-size: 22px;
   line-height: 1;
   display: inline-block;
+  transform: rotate(0deg);
   transition: transform 0.25s ease;
 }
 
@@ -231,6 +232,12 @@
   border-radius: 8px;
   margin-top: 2px;
   width: fit-content;
+}
+
+/* ── Favorites indicator ────────────────────────────────────────────── */
+.sidebar-item-favorite {
+  color: #fdc500;
+  font-size: 13px;
 }
 
 /* ── Empty state ────────────────────────────────────────────────────── */

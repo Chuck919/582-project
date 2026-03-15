@@ -2,7 +2,17 @@ import { OverlayView } from "@react-google-maps/api";
 import { useEffect, useRef } from "react";
 import RestaurantInfoModal from "./RestaurantInfoModal";
 
-function RestaurantMarkers({ restaurants, map, deals, hasActiveDealsByPlaceId, refreshDeals, selectedRestaurant, setSelectedRestaurant }) {
+  function RestaurantMarkers({
+    restaurants,
+    map,
+    deals,
+    hasActiveDealsByPlaceId,
+    refreshDeals,
+    selectedRestaurant,
+    setSelectedRestaurant,
+    isFavorite,
+    toggleFavorite
+  }) {
   const markersRef = useRef([]);
 
   useEffect(() => {
@@ -102,14 +112,13 @@ function RestaurantMarkers({ restaurants, map, deals, hasActiveDealsByPlaceId, r
       })}
       
       {/* Restaurant Info Modal */}
-      <RestaurantInfoModal 
-        restaurant={selectedRestaurant} 
+      <RestaurantInfoModal
+        restaurant={selectedRestaurant}
         onClose={handleCloseModal}
         deals={selectedRestaurant ? deals[selectedRestaurant.place_id] || [] : []}
-        onDealAdded={() => {
-          // child notified that a deal was inserted; refresh parent state
-          refreshDeals?.();
-        }}
+        onDealAdded={() => refreshDeals?.()}
+        isFavorite={isFavorite}
+        toggleFavorite={toggleFavorite}
       />
     </>
   );
