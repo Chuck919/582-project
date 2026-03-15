@@ -23,6 +23,17 @@ export async function createDeal(input) {
     throw error
   }
 
+  // Keep restaurants.has_active_deals in sync so other clients and features can use it
+  if (input.restaurant_id) {
+    const { error: updateError } = await supabase
+      .from('restaurants')
+      .update({ has_active_deals: true })
+      .eq('id', input.restaurant_id)
+    if (updateError) {
+      console.error('Error updating restaurant has_active_deals:', updateError)
+    }
+  }
+
   return data
 }
 

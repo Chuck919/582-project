@@ -67,6 +67,7 @@ function App() {
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
   const [dealsError, setDealsError] = useState(null);
+  const [hasActiveDealsByPlaceId, setHasActiveDealsByPlaceId] = useState({});
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -124,20 +125,52 @@ function App() {
   }, []);
 
   // Fetch deals from Supabase and update state.
-  // Wrapped in useCallback so it can be passed as a stable prop to children.
+  // Also refreshes has_active_deals from DB so markers stay in sync (e.g. after adding a deal).
   const refreshDeals = useCallback(async () => {
     try {
       const dealsByRestaurant = await fetchDeals();
       setDeals(dealsByRestaurant);
+      const placeIds = restaurants.map((r) => r.place_id);
+      if (placeIds.length) {
+        const { data, error } = await supabase
+          .from('restaurants')
+          .select('id, has_active_deals')
+          .in('id', placeIds);
+        if (!error && data) {
+          const next = {};
+          data.forEach((row) => {
+            next[row.id] = !!row.has_active_deals;
+          });
+          setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
+        }
+      }
     } catch (err) {
       console.error('Error fetching deals:', err);
       setDealsError('Failed to load deals. Please try again later.');
     }
-  }, []);
+  }, [restaurants]);
 
   useEffect(() => {
     refreshDeals();
   }, [refreshDeals]);
+
+  // Load has_active_deals from DB when restaurant list is first set (e.g. from cache before refreshDeals runs).
+  useEffect(() => {
+    if (!restaurants.length) return;
+    const placeIds = restaurants.map((r) => r.place_id);
+    supabase
+      .from('restaurants')
+      .select('id, has_active_deals')
+      .in('id', placeIds)
+      .then(({ data, error }) => {
+        if (error) return;
+        const next = {};
+        (data || []).forEach((row) => {
+          next[row.id] = !!row.has_active_deals;
+        });
+        setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
+      });
+  }, [restaurants]);
 
   // Create user location marker with AdvancedMarkerElement
   useEffect(() => {
@@ -447,6 +480,7 @@ function App() {
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
         deals={deals}
+        hasActiveDealsByPlaceId={hasActiveDealsByPlaceId}
         refreshDeals={refreshDeals}
       />
     </GoogleMap>
