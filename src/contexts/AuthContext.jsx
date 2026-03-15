@@ -1,42 +1,53 @@
 import { createContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { getAvatarPublicUrl } from "../utils/avatarStorage";
 
 const AuthContext = createContext(null);
 export default AuthContext;
 
 const DEFAULT_PROFILE = {
   searchRadius: 5,
-  avatar: null,
+  avatarPath: null,
+  avatarUrl: null,
 };
 
-function normalizeProfile(metadata) {
-  const profile = metadata?.profile ?? {};
+function normalizeStoredProfile(profile) {
   const parsedRadius = Number(profile.searchRadius);
 
   return {
     searchRadius: Number.isFinite(parsedRadius) ? Math.min(Math.max(parsedRadius, 1), 15) : DEFAULT_PROFILE.searchRadius,
-    avatar: typeof profile.avatar === "string" && profile.avatar ? profile.avatar : null,
+    avatarPath: typeof profile.avatarPath === "string" && profile.avatarPath ? profile.avatarPath : null,
+  };
+}
+
+function normalizeProfile(metadata) {
+  const rawProfile = metadata?.profile ?? {};
+  const storedProfile = normalizeStoredProfile(rawProfile);
+  const legacyAvatar = typeof rawProfile.avatar === "string" && rawProfile.avatar ? rawProfile.avatar : null;
+  const localAvatar = typeof window !== "undefined" ? window.localStorage.getItem("user_avatar") : null;
+
+  return {
+    ...storedProfile,
+    avatarUrl: storedProfile.avatarPath ? getAvatarPublicUrl(storedProfile.avatarPath) : (legacyAvatar || localAvatar || null),
   };
 }
 
 function loadLegacyProfile() {
   try {
     const storedPrefs = localStorage.getItem("user_preferences");
-    const storedAvatar = localStorage.getItem("user_avatar");
     const parsedPrefs = storedPrefs ? JSON.parse(storedPrefs) : {};
     const parsedRadius = Number(parsedPrefs?.searchRadius);
 
     return {
       searchRadius: Number.isFinite(parsedRadius) ? Math.min(Math.max(parsedRadius, 1), 15) : DEFAULT_PROFILE.searchRadius,
-      avatar: storedAvatar || null,
     };
   } catch {
-    return DEFAULT_PROFILE;
+    return { searchRadius: DEFAULT_PROFILE.searchRadius };
   }
 }
 
 function hasLegacyProfile(profile) {
-  return profile.searchRadius !== DEFAULT_PROFILE.searchRadius || !!profile.avatar;
+  return profile.searchRadius !== DEFAULT_PROFILE.searchRadius;
 }
 
 export function AuthProvider({ children }) {
@@ -120,11 +131,9 @@ export function AuthProvider({ children }) {
       return { data: null, error: new Error("You must be signed in to update your profile.") };
     }
 
-    const nextProfile = normalizeProfile({
-      profile: {
-        ...profile,
-        ...updates,
-      },
+    const nextProfile = normalizeStoredProfile({
+      ...(user.user_metadata?.profile ?? {}),
+      ...updates,
     });
 
     const { data, error } = await supabase.auth.updateUser({

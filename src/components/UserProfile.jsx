@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../contexts/useAuth";
+import { removeAvatar, uploadAvatar } from "../utils/avatarStorage";
 import "./UserProfile.css";
 
 function getInitials(email) {
@@ -15,7 +16,7 @@ function formatJoinDate(dateString) {
   });
 }
 
-function fileToResizedDataUrl(file) {
+function fileToResizedFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -38,7 +39,20 @@ function fileToResizedDataUrl(file) {
         }
 
         context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error("Failed to prepare image."));
+              return;
+            }
+
+            resolve(new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "avatar"}.jpg`, {
+              type: "image/jpeg",
+            }));
+          },
+          "image/jpeg",
+          0.82
+        );
       };
 
       image.src = reader.result;
@@ -51,14 +65,14 @@ function fileToResizedDataUrl(file) {
 export default function UserProfile({ onClose }) {
   const { user, profile, updateProfile } = useAuth();
   const [preferences, setPreferences] = useState({ searchRadius: profile.searchRadius });
-  const [avatar, setAvatar] = useState(profile.avatar);
+  const [avatar, setAvatar] = useState(profile.avatarUrl);
   const [saveState, setSaveState] = useState("idle");
   const [saveError, setSaveError] = useState("");
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     setPreferences({ searchRadius: profile.searchRadius });
-    setAvatar(profile.avatar);
+    setAvatar(profile.avatarUrl);
   }, [profile]);
 
   useEffect(() => {
@@ -93,20 +107,35 @@ export default function UserProfile({ onClose }) {
     setSaveError("");
 
     try {
-      const nextAvatar = await fileToResizedDataUrl(file);
-      setAvatar(nextAvatar);
+      const optimizedFile = await fileToResizedFile(file);
+      const previousAvatarPath = profile.avatarPath;
+      const { path, publicUrl } = await uploadAvatar({
+        userId: user.id,
+        file: optimizedFile,
+      });
 
-      const { error } = await updateProfile({ avatar: nextAvatar });
+      setAvatar(publicUrl);
+
+      const { error } = await updateProfile({ avatarPath: path });
       if (error) {
-        setAvatar(profile.avatar);
+        await removeAvatar(path);
+        setAvatar(profile.avatarUrl);
         setSaveState("error");
         setSaveError(error.message || "Could not save your profile picture.");
         return;
       }
 
+      window.localStorage.removeItem("user_avatar");
+
+      if (previousAvatarPath && previousAvatarPath !== path) {
+        removeAvatar(previousAvatarPath).catch((removeError) => {
+          console.error("Could not remove previous avatar:", removeError);
+        });
+      }
+
       setSaveState("saved");
     } catch (error) {
-      setAvatar(profile.avatar);
+      setAvatar(profile.avatarUrl);
       setSaveState("error");
       setSaveError(error.message || "Could not process that image.");
     } finally {
