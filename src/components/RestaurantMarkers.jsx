@@ -2,7 +2,17 @@ import { OverlayView } from "@react-google-maps/api";
 import { useEffect, useRef } from "react";
 import RestaurantInfoModal from "./RestaurantInfoModal";
 
-function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRestaurant, setSelectedRestaurant, isFavorite, toggleFavorite }) {
+  function RestaurantMarkers({
+    restaurants,
+    map,
+    deals,
+    hasActiveDealsByPlaceId,
+    refreshDeals,
+    selectedRestaurant,
+    setSelectedRestaurant,
+    isFavorite,
+    toggleFavorite
+  }) {
   const markersRef = useRef([]);
 
   useEffect(() => {

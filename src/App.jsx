@@ -1,5 +1,5 @@
 import { GoogleMap, useLoadScript } from "@react-google-maps/api";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./contexts/useAuth";
 import { fetchDeals } from "./utils/deals";
@@ -69,10 +69,12 @@ function App() {
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
   const [dealsError, setDealsError] = useState(null);
+  const [hasActiveDealsByPlaceId, setHasActiveDealsByPlaceId] = useState({});
   const [map, setMap] = useState(null);
   const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
+  const [locationWarning, setLocationWarning] = useState(null);
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -84,41 +86,93 @@ function App() {
   });
 
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
       (position) => {
+        setLocationWarning(null);
         setCurrentPosition({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         });
       },
       (error) => {
-        const messages = {
-          1: "Location access was denied. Please enable location permissions in your browser settings and refresh the page.",
-          2: "Your location could not be determined due to a network or hardware error.",
-          3: "Location request timed out. Please refresh the page and try again.",
-        };
-        const message = messages[error.code] || "An unknown error occurred while retrieving your location.";
-        console.error(`Geolocation error (code ${error.code}):`, message, error);
-        setLocationError(message);
+        console.error(`Geolocation error (code ${error.code}):`, error);
+        if (error.code === 1) {
+          // Permission denied — permanent failure, show fatal screen
+          setLocationError("Location access was denied. Please enable location permissions in your browser settings and refresh the page.");
+        } else {
+          // Codes 2 & 3 are transient — show a dismissible warning, keep the app alive
+          const messages = {
+            2: "Your location could not be determined due to a network or hardware error. Retrying...",
+            3: "Location request timed out. Retrying...",
+          };
+          const message = messages[error.code] || "An unknown error occurred while retrieving your location. Retrying...";
+          setLocationWarning(message);
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 15000,
+        timeout: 20000,
       }
     );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
   }, []);
 
   // Fetch deals from Supabase and update state.
-  // Wrapped in useCallback so it can be passed as a stable prop to children.
+  // Also refreshes has_active_deals from DB so markers stay in sync (e.g. after adding a deal).
   const refreshDeals = useCallback(async () => {
     try {
       const dealsByRestaurant = await fetchDeals();
       setDeals(dealsByRestaurant);
+      const placeIds = restaurants.map((r) => r.place_id);
+      if (placeIds.length) {
+        const { data, error } = await supabase
+          .from('restaurants')
+          .select('id, has_active_deals')
+          .in('id', placeIds);
+        if (!error && data) {
+          const next = {};
+          data.forEach((row) => {
+            next[row.id] = !!row.has_active_deals;
+          });
+          setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
+        }
+      }
     } catch (err) {
       console.error('Error fetching deals:', err);
       setDealsError('Failed to load deals. Please try again later.');
     }
-  }, []);
+  }, [restaurants]);
 
   useEffect(() => {
     refreshDeals();
   }, [refreshDeals]);
+
+  // Load has_active_deals from DB when restaurant list is first set (e.g. from cache before refreshDeals runs).
+  useEffect(() => {
+    if (!restaurants.length) return;
+    const placeIds = restaurants.map((r) => r.place_id);
+    supabase
+      .from('restaurants')
+      .select('id, has_active_deals')
+      .in('id', placeIds)
+      .then(({ data, error }) => {
+        if (error) return;
+        const next = {};
+        (data || []).forEach((row) => {
+          next[row.id] = !!row.has_active_deals;
+        });
+        setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
+      });
+  }, [restaurants]);
 
   // Create user location marker with AdvancedMarkerElement
   useEffect(() => {
@@ -250,6 +304,36 @@ function App() {
       });
   }, [user, restaurants]);
 
+  const restaurantsWithDistance = useMemo(() => {
+    if (!currentPosition) return restaurants;
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const earthRadiusMeters = 6371000;
+    return restaurants.map((restaurant) => {
+      const location = restaurant.geometry?.location;
+      const lat = typeof location?.lat === "function" ? location.lat() : location?.lat;
+      const lng = typeof location?.lng === "function" ? location.lng() : location?.lng;
+      if (typeof lat !== "number" || typeof lng !== "number") {
+        console.warn(`[restaurantsWithDistance] Missing or invalid coordinates for "${restaurant.name}" (id: ${restaurant.place_id}). location was:`, location);
+        return { ...restaurant, distanceMeters: Number.POSITIVE_INFINITY, distanceMiles: null };
+      }
+      const dLat = toRad(lat - currentPosition.lat);
+      const dLng = toRad(lng - currentPosition.lng);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(currentPosition.lat)) *
+          Math.cos(toRad(lat)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distanceMeters = earthRadiusMeters * c;
+      return {
+        ...restaurant,
+        distanceMeters,
+        distanceMiles: distanceMeters / 1609.344,
+      };
+    });
+  }, [restaurants, currentPosition]);
+
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
   };
@@ -305,7 +389,7 @@ function App() {
       />
 
       <Sidebar
-        restaurants={restaurants}
+        restaurants={restaurantsWithDistance}
         onRestaurantSelect={handleResultSelect}
         deals={deals}
         isOpen={sidebarOpen}
@@ -314,39 +398,6 @@ function App() {
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}
-      <div
-        className="map-type-toggle"
-        style={{ "--map-toggle-left": sidebarOpen ? "322px" : "42px" }}
-      >
-        {["roadmap", "satellite"].map((type) => (
-          <button
-            key={type}
-            onClick={() => setMapType(type)}
-            style={{
-              padding: "6px 12px",
-              background: mapType === type ? "#e8e8e8" : "#fff",
-              border: "none",
-              borderLeft: type === "satellite" ? "1px solid #ddd" : "none",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: mapType === type ? "600" : "400",
-              color: "#333",
-            }}
-          >
-            {type === "roadmap" ? "Map" : "Satellite"}
-          </button>
-        ))}
-      </div>
-
-      <Sidebar
-        restaurants={restaurants}
-        onRestaurantSelect={handleResultSelect}
-        deals={deals}
-        isOpen={sidebarOpen}
-        onToggle={handleSidebarToggle}
-      />
-
-      {/* Map/Satellite toggle — slides right when sidebar opens (desktop only) */}
       <div
         className="map-type-toggle"
         style={{ "--map-toggle-left": sidebarOpen ? "322px" : "42px" }}
@@ -392,6 +443,12 @@ function App() {
           Restaurants found: {restaurants.length}
         </div>
       </div>
+      {locationWarning && (
+        <div className="places-error-banner">
+          {locationWarning}
+          <button onClick={() => setLocationWarning(null)} aria-label="Dismiss">x</button>
+        </div>
+      )}
       {placesError && (
         <div className="places-error-banner">
           {placesError}
@@ -427,11 +484,12 @@ function App() {
       
       {/* Restaurant markers component */}
       <RestaurantMarkers
-        restaurants={restaurants}
+        restaurants={restaurantsWithDistance}
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
         deals={deals}
+        hasActiveDealsByPlaceId={hasActiveDealsByPlaceId}
         refreshDeals={refreshDeals}
         isFavorite={isFavorite}
         toggleFavorite={toggleFavorite}
