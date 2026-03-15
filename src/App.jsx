@@ -400,7 +400,7 @@ function App() {
       {/* Map/Satellite toggle — slides right when sidebar opens */}
       <div
         className="map-type-toggle"
-        style={{ "--map-toggle-left": sidebarOpen ? "322px" : "42px" }}
+        style={{ "--map-toggle-left": sidebarOpen ? "400px" : "42px" }}
       >
         {["roadmap", "satellite"].map((type) => (
           <button

@@ -26,17 +26,30 @@ import RestaurantInfoModal from "./RestaurantInfoModal";
 
     // Create new AdvancedMarkerElements
     if (map && window.google && window.google.maps && window.google.maps.marker) {
+      const { AdvancedMarkerElement, PinElement } = window.google.maps.marker;
+
       restaurants.forEach((restaurant) => {
         try {
           const location = restaurant.geometry.location;
           const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
           const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
 
-          const marker = new window.google.maps.marker.AdvancedMarkerElement({
-            map: map,
+          const hasActiveDeals = !!hasActiveDealsByPlaceId?.[restaurant.place_id];
+
+          const markerOptions = {
+            map,
             position: { lat, lng },
             title: restaurant.name,
-          });
+          };
+          if (hasActiveDeals) {
+            markerOptions.content = new PinElement({
+              background: '#00509D',
+              borderColor: '#002a5c',
+              glyphColor: '#FFD500',
+            }).element;
+          }
+
+          const marker = new AdvancedMarkerElement(markerOptions);
 
           // Add click listener using gmp-click for AdvancedMarkerElement
           marker.addListener('gmp-click', () => {
@@ -58,7 +71,7 @@ import RestaurantInfoModal from "./RestaurantInfoModal";
         }
       });
     };
-  }, [restaurants, map, setSelectedRestaurant]);
+  }, [restaurants, map, hasActiveDealsByPlaceId, setSelectedRestaurant]);
 
   const handleCloseModal = () => {
     setSelectedRestaurant(null);
