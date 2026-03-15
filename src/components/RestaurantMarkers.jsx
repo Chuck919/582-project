@@ -2,7 +2,7 @@ import { OverlayView } from "@react-google-maps/api";
 import { useEffect, useRef } from "react";
 import RestaurantInfoModal from "./RestaurantInfoModal";
 
-function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRestaurant, setSelectedRestaurant }) {
+function RestaurantMarkers({ restaurants, map, deals, hasActiveDealsByPlaceId, refreshDeals, selectedRestaurant, setSelectedRestaurant }) {
   const markersRef = useRef([]);
 
   useEffect(() => {
@@ -24,14 +24,14 @@ function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRest
           const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
           const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
 
-          const hasDeals = (deals[restaurant.place_id]?.length ?? 0) > 0;
+          const hasActiveDeals = !!hasActiveDealsByPlaceId?.[restaurant.place_id];
 
           const markerOptions = {
             map,
             position: { lat, lng },
             title: restaurant.name,
           };
-          if (hasDeals) {
+          if (hasActiveDeals) {
             markerOptions.content = new PinElement({
               background: '#00509D',
               borderColor: '#002a5c',
@@ -61,7 +61,7 @@ function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRest
         }
       });
     };
-  }, [restaurants, map, deals, setSelectedRestaurant]);
+  }, [restaurants, map, hasActiveDealsByPlaceId, setSelectedRestaurant]);
 
   const handleCloseModal = () => {
     setSelectedRestaurant(null);
