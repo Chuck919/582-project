@@ -1,20 +1,6 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../contexts/useAuth";
 import "./UserProfile.css";
-
-const PREFS_KEY = "user_preferences";
-const AVATAR_KEY = "user_avatar";
-
-function loadPreferences() {
-  try {
-    const stored = localStorage.getItem(PREFS_KEY);
-    return stored
-      ? JSON.parse(stored)
-      : { searchRadius: 5 };
-  } catch {
-    return { searchRadius: 5 };
-  }
-}
 
 function getInitials(email) {
   if (!email) return "?";
@@ -29,34 +15,108 @@ function formatJoinDate(dateString) {
   });
 }
 
+function fileToResizedDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("Failed to read image."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("Failed to load image."));
+      image.onload = () => {
+        const maxDimension = 256;
+        const scale = Math.min(maxDimension / image.width, maxDimension / image.height, 1);
+        const canvas = document.createElement("canvas");
+
+        canvas.width = Math.round(image.width * scale);
+        canvas.height = Math.round(image.height * scale);
+
+        const context = canvas.getContext("2d");
+        if (!context) {
+          reject(new Error("Failed to prepare image."));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+
+      image.src = reader.result;
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function UserProfile({ onClose }) {
-  const { user } = useAuth();
-  const [preferences, setPreferences] = useState(loadPreferences);
-  const [avatar, setAvatar] = useState(() => localStorage.getItem(AVATAR_KEY) || null);
+  const { user, profile, updateProfile } = useAuth();
+  const [preferences, setPreferences] = useState({ searchRadius: profile.searchRadius });
+  const [avatar, setAvatar] = useState(profile.avatar);
+  const [saveState, setSaveState] = useState("idle");
+  const [saveError, setSaveError] = useState("");
   const fileInputRef = useRef(null);
 
-  const savePrefs = (updated) => {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(updated));
-  };
+  useEffect(() => {
+    setPreferences({ searchRadius: profile.searchRadius });
+    setAvatar(profile.avatar);
+  }, [profile]);
+
+  useEffect(() => {
+    if (preferences.searchRadius === profile.searchRadius) return;
+
+    setSaveState("saving");
+    setSaveError("");
+
+    const timeoutId = window.setTimeout(async () => {
+      const { error } = await updateProfile({ searchRadius: preferences.searchRadius });
+
+      if (error) {
+        setSaveState("error");
+        setSaveError(error.message || "Could not save your preferences.");
+        return;
+      }
+
+      setSaveState("saved");
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [preferences.searchRadius, profile.searchRadius, updateProfile]);
 
   const handleAvatarClick = () => fileInputRef.current?.click();
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setAvatar(ev.target.result);
-      localStorage.setItem(AVATAR_KEY, ev.target.result);
-    };
-    reader.readAsDataURL(file);
+
+    setSaveState("saving");
+    setSaveError("");
+
+    try {
+      const nextAvatar = await fileToResizedDataUrl(file);
+      setAvatar(nextAvatar);
+
+      const { error } = await updateProfile({ avatar: nextAvatar });
+      if (error) {
+        setAvatar(profile.avatar);
+        setSaveState("error");
+        setSaveError(error.message || "Could not save your profile picture.");
+        return;
+      }
+
+      setSaveState("saved");
+    } catch (error) {
+      setAvatar(profile.avatar);
+      setSaveState("error");
+      setSaveError(error.message || "Could not process that image.");
+    } finally {
+      e.target.value = "";
+    }
   };
 
   const handleRadiusChange = (e) => {
     const updated = { ...preferences, searchRadius: Number(e.target.value) };
     setPreferences(updated);
-    savePrefs(updated);
   };
 
   const username = user?.user_metadata?.username;
@@ -129,6 +189,9 @@ export default function UserProfile({ onClose }) {
             </div>
           </div>
 
+          {saveState === "saving" && <p className="profile-email">Saving profile...</p>}
+          {saveState === "saved" && !saveError && <p className="profile-email">Profile saved across devices.</p>}
+          {saveError && <p className="profile-email">{saveError}</p>}
 
         </div>
       </div>

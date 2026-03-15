@@ -61,17 +61,8 @@ function fuzzyMatch(query, name) {
   );
 }
 
-function loadSavedPrefs() {
-  try {
-    const stored = localStorage.getItem("user_preferences");
-    return stored ? JSON.parse(stored) : { searchRadius: 5 };
-  } catch {
-    return { searchRadius: 5 };
-  }
-}
-
 function App() {
-  const { user } = useAuth();
+  const { user, profile, loading } = useAuth();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
@@ -89,6 +80,7 @@ function App() {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
   });
+  const searchRadius = profile.searchRadius;
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -124,7 +116,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    refreshDeals();
+    queueMicrotask(() => {
+      void refreshDeals();
+    });
   }, [refreshDeals]);
 
   // Create user location marker with AdvancedMarkerElement
@@ -160,15 +154,20 @@ function App() {
   }, [map, currentPosition]);
 
   useEffect(() => {
+    if (loading) return;
     if (map && currentPosition && !hasSearched) {
       // Check cache first
-      const cacheKey = `restaurants_${currentPosition.lat.toFixed(3)}_${currentPosition.lng.toFixed(3)}`;
+      const cacheKey = `restaurants_${currentPosition.lat.toFixed(3)}_${currentPosition.lng.toFixed(3)}_${searchRadius}`;
       const cached = sessionStorage.getItem(cacheKey);
       
       if (cached) {
         console.log("Using cached restaurant data");
-        setRestaurants(JSON.parse(cached));
-        setHasSearched(true);
+        const cachedRestaurants = JSON.parse(cached);
+
+        queueMicrotask(() => {
+          setRestaurants(cachedRestaurants);
+          setHasSearched(true);
+        });
         return;
       }
 
@@ -180,7 +179,7 @@ function App() {
         fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
         locationRestriction: {
           center: currentPosition,
-          radius: Math.round(loadSavedPrefs().searchRadius * 1609.34),
+          radius: Math.round(searchRadius * 1609.34),
         },
         includedTypes: ["restaurant"],
         maxResultCount: 20,
@@ -236,7 +235,13 @@ function App() {
           setHasSearched(true);
         });
     }
-  }, [map, currentPosition, hasSearched]);
+  }, [map, currentPosition, hasSearched, loading, searchRadius]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setHasSearched(false);
+    });
+  }, [currentPosition, searchRadius]);
 
   useEffect(() => {
     if (!user || !restaurants.length) return;
