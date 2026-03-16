@@ -65,7 +65,7 @@ function fuzzyMatch(query, name) {
 
 function App() {
   const { user, profile, loading } = useAuth();
-  const { isFavorite, toggleFavorite, favoritesError, dismissFavoritesError } = useFavorites();
+  const { isFavorite, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError } = useFavorites();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
@@ -410,6 +410,7 @@ function App() {
         isOpen={sidebarOpen}
         onToggle={handleSidebarToggle}
         isFavorite={isFavorite}
+        favoriteRestaurants={favoriteRestaurants}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}
