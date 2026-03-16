@@ -248,6 +248,35 @@
   text-align: center;
 }
 
+/* ── Tabs ───────────────────────────────────────────────────────────── */
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.sidebar-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.sidebar-tab:hover {
+  color: #003f88;
+}
+
+.sidebar-tab--active {
+  color: #003f88;
+  border-bottom-color: #003f88;
+}
+
 /* ── Mobile: sidebar moves to bottom ───────────────────────────────── */
 @media (max-width: 640px) {
   .sidebar {
@@ -296,5 +325,10 @@
 
   .sidebar-item-address {
     max-width: 90vw;
+  }
+
+  .sidebar-tab {
+    padding: 8px 0;
+    font-size: 12px;
   }
 }

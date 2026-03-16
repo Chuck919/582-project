@@ -27,7 +27,7 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded, isFavori
   async function handleToggleFavorite() {
     setToggleError(null);
     try {
-      await toggleFavorite(restaurant.place_id);
+      await toggleFavorite(restaurant.place_id, restaurant);
     } catch {
       setToggleError("Could not update your saved restaurants. Please try again.");
     }
