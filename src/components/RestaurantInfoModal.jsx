@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "../contexts/useAuth";
 import "./RestaurantInfoModal.css";
 import DealForm from "./DealForm";
@@ -11,14 +12,26 @@ function formatDate(dateString) {
   });
 }
 
-function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
+function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded, isFavorite, toggleFavorite }) {
   const { user } = useAuth();
+  const [toggleError, setToggleError] = useState(null);
 
   if (!restaurant) return null;
 
   const cuisineLabel = restaurant.cuisine?.length
     ? restaurant.cuisine.join(", ")
     : "N/A";
+
+  const favorited = isFavorite?.(restaurant.place_id);
+
+  async function handleToggleFavorite() {
+    setToggleError(null);
+    try {
+      await toggleFavorite(restaurant.place_id);
+    } catch {
+      setToggleError("Could not update your saved restaurants. Please try again.");
+    }
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -27,6 +40,24 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded }) {
           &times;
         </button>
         <h2>{restaurant.name}</h2>
+
+        {user ? (
+          <>
+            <button
+              className={`favorite-btn${favorited ? " favorite-btn--active" : ""}`}
+              onClick={handleToggleFavorite}
+              aria-label={favorited ? "Remove from favorites" : "Save as favorite"}
+            >
+              {favorited ? "★ Saved" : "☆ Save"}
+            </button>
+            {toggleError && (
+              <p className="favorite-error" role="alert">{toggleError}</p>
+            )}
+          </>
+        ) : (
+          <p className="favorite-login-hint">Log in to save favorites.</p>
+        )}
+
         <p>Rating: {restaurant.rating || "N/A"}</p>
         <p>Cuisine: {cuisineLabel}</p>
 
