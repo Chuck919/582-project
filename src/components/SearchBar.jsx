@@ -55,7 +55,7 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyResta
 
   const handleSubmit = (e) => {
     e.preventDefault();
-const sanitized = sanitizeInput(query);
+    const sanitized = sanitizeInput(query);
     if (!sanitized) return;
     setSuggestions([]);
     setHasSearched(true);

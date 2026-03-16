@@ -411,6 +411,7 @@ function App() {
         onToggle={handleSidebarToggle}
         isFavorite={isFavorite}
         favoriteRestaurants={favoriteRestaurants}
+        user={user}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}

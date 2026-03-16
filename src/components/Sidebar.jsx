@@ -1,9 +1,7 @@
 import { useMemo, useState } from "react";
-import { useAuth } from "../contexts/useAuth";
 import "./Sidebar.css";
 
-function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [] }) {
-    const { user } = useAuth();
+function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user }) {
     const [sortBy, setSortBy] = useState("distance");
     const [showDeals, setShowDeals] = useState(true);
     const [activeTab, setActiveTab] = useState("nearby");

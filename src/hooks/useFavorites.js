@@ -60,7 +60,7 @@ export function useFavorites() {
     return () => { cancelled = true; };
   }, [user]);
 
-  const removedRestaurantRef = useRef(null);
+  const removedRestaurantsRef = useRef(new Map());
 
   const toggleFavorite = useCallback(
     async (restaurantId, restaurantData) => {
@@ -80,14 +80,24 @@ export function useFavorites() {
       });
 
       if (isFav) {
-        // Optimistic remove: capture and filter out
+        // Optimistic remove: capture per-ID so concurrent unfavorites don't clobber each other
         setFavoriteRestaurants((prev) => {
-          removedRestaurantRef.current = prev.find((r) => r.place_id === restaurantId) ?? null;
+          const removed = prev.find((r) => r.place_id === restaurantId);
+          if (removed) removedRestaurantsRef.current.set(restaurantId, removed);
           return prev.filter((r) => r.place_id !== restaurantId);
         });
       } else if (restaurantData) {
-        // Optimistic add
-        setFavoriteRestaurants((prev) => [restaurantData, ...prev]);
+        // Optimistic add — normalize to the same shape the DB query returns so
+        // the list stays consistent regardless of which fields the caller passes.
+        const normalized = {
+          place_id: restaurantData.place_id,
+          name: restaurantData.name,
+          geometry: restaurantData.geometry,
+          rating: restaurantData.rating ?? null,
+          cuisine: restaurantData.cuisine ?? null,
+          price_range: restaurantData.price_range ?? null,
+        };
+        setFavoriteRestaurants((prev) => [normalized, ...prev]);
       }
 
       try {
@@ -109,8 +119,9 @@ export function useFavorites() {
             isFav ? next.add(restaurantId) : next.delete(restaurantId);
             return next;
           });
-          if (isFav && removedRestaurantRef.current) {
-            setFavoriteRestaurants((prev) => [removedRestaurantRef.current, ...prev]);
+          const removed = removedRestaurantsRef.current.get(restaurantId);
+          if (isFav && removed) {
+            setFavoriteRestaurants((prev) => [removed, ...prev]);
           } else if (!isFav) {
             setFavoriteRestaurants((prev) => prev.filter((r) => r.place_id !== restaurantId));
           }
@@ -118,6 +129,7 @@ export function useFavorites() {
         }
       } finally {
         inFlightRef.current.delete(restaurantId);
+        removedRestaurantsRef.current.delete(restaurantId);
       }
     },
     [user]
