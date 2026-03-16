@@ -7,6 +7,7 @@ import { useFavorites } from "./hooks/useFavorites";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
+import UserProfile from "./components/UserProfile";
 import "./App.css";
 import SearchBar from "./components/SearchBar";
 import Sidebar from "./components/Sidebar";
@@ -63,7 +64,7 @@ function fuzzyMatch(query, name) {
 }
 
 function App() {
-  const { user } = useAuth();
+  const { user, profile, loading } = useAuth();
   const { isFavorite, toggleFavorite, favoritesError, dismissFavoritesError } = useFavorites();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
@@ -71,12 +72,13 @@ function App() {
   const [dealsError, setDealsError] = useState(null);
   const [hasActiveDealsByPlaceId, setHasActiveDealsByPlaceId] = useState({});
   const [map, setMap] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [locationWarning, setLocationWarning] = useState(null);
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mapType, setMapType] = useState("roadmap");
   const userMarkerRef = useRef(null);
@@ -84,6 +86,7 @@ function App() {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
   });
+  const searchRadius = profile.searchRadius;
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -153,7 +156,9 @@ function App() {
   }, [restaurants]);
 
   useEffect(() => {
-    refreshDeals();
+    queueMicrotask(() => {
+      void refreshDeals();
+    });
   }, [refreshDeals]);
 
   // Load has_active_deals from DB when restaurant list is first set (e.g. from cache before refreshDeals runs).
@@ -207,15 +212,19 @@ function App() {
   }, [map, currentPosition]);
 
   useEffect(() => {
+    if (loading) return;
     if (map && currentPosition && !hasSearched) {
       // Check cache first
-      const cacheKey = `restaurants_${currentPosition.lat.toFixed(3)}_${currentPosition.lng.toFixed(3)}`;
+      const cacheKey = `restaurants_${currentPosition.lat.toFixed(3)}_${currentPosition.lng.toFixed(3)}_${searchRadius}`;
       const cached = sessionStorage.getItem(cacheKey);
       
       if (cached) {
         console.log("Using cached restaurant data");
-        setRestaurants(JSON.parse(cached));
-        setHasSearched(true);
+        const cachedRestaurants = JSON.parse(cached);
+        queueMicrotask(() => {
+          setRestaurants(cachedRestaurants);
+          setHasSearched(true);
+        });
         return;
       }
 
@@ -227,7 +236,7 @@ function App() {
         fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
         locationRestriction: {
           center: currentPosition,
-          radius: 10000, // 10km radius
+          radius: Math.round(searchRadius * 1609.34),
         },
         includedTypes: ["restaurant"],
         maxResultCount: 20,
@@ -283,7 +292,13 @@ function App() {
           setHasSearched(true);
         });
     }
-  }, [map, currentPosition, hasSearched]);
+  }, [map, currentPosition, hasSearched, loading, searchRadius]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setHasSearched(false);
+    });
+  }, [searchRadius]);
 
   useEffect(() => {
     if (!user || !restaurants.length) return;
@@ -431,15 +446,8 @@ function App() {
         alignItems: "center",
         gap: "12px",
       }}>
-        <AuthHeader />
-        <div style={{
-          background: "white",
-          padding: "10px 14px",
-          borderRadius: "8px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-          color: "#1e293b",
-          fontSize: "14px",
-        }}>
+        <AuthHeader onOpenProfile={() => setShowProfile(true)} />
+        <div className="restaurants-found-badge">
           Restaurants found: {restaurants.length}
         </div>
       </div>
@@ -495,6 +503,12 @@ function App() {
         toggleFavorite={toggleFavorite}
       />
     </GoogleMap>
+
+    {showProfile && user && (
+      <UserProfile
+        onClose={() => setShowProfile(false)}
+      />
+    )}
     </>
   );
 }

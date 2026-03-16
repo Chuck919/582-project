@@ -49,3 +49,14 @@
   line-height: 1;
 }
 
+.restaurants-found-badge {
+  background: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  color: #1e293b;
+  font-size: 14px;
+}
+
+
+
