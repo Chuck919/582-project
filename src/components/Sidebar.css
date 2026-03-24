@@ -76,11 +76,13 @@
 /* ── Header ─────────────────────────────────────────────────────────── */
 .sidebar-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   padding: 16px 16px 12px;
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
+  gap: 8px;
 }
 
 .sidebar-title-group {
@@ -93,13 +95,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: 10px;
-}
-
-.sidebar-sort-label {
-  font-size: 12px;
-  color: #4b5563;
-  font-weight: 600;
+  flex-wrap: wrap;
 }
 
 .sidebar-deals-btn {
@@ -123,7 +119,10 @@
   color: white;
 }
 
-.sidebar-sort {
+.sidebar-rating-filter,
+.sidebar-price-filter,
+.sidebar-distance-filter,
+.sidebar-cuisine-filter {
   border: 1px solid #dbe4f0;
   border-radius: 8px;
   padding: 6px 8px;

@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import "./Sidebar.css";
 
-function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user }) {
-    const [sortBy, setSortBy] = useState("distance");
+function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user, minRating = 0, onMinRatingChange, priceFilter = "", onPriceFilterChange, distanceFilter = "", onDistanceFilterChange, cuisineFilter = "", onCuisineFilterChange, cuisineOptions = [] }) {
     const [showDeals, setShowDeals] = useState(true);
     const [activeTab, setActiveTab] = useState("nearby");
 
@@ -17,15 +16,13 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isF
                 }
             }
 
-            if (sortBy === "distance") {
-                const aDist = Number.isFinite(a.distanceMeters) ? a.distanceMeters : Number.POSITIVE_INFINITY;
-                const bDist = Number.isFinite(b.distanceMeters) ? b.distanceMeters : Number.POSITIVE_INFINITY;
-                if (aDist !== bDist) return aDist - bDist;
-            }
+            const aDist = Number.isFinite(a.distanceMeters) ? a.distanceMeters : Number.POSITIVE_INFINITY;
+            const bDist = Number.isFinite(b.distanceMeters) ? b.distanceMeters : Number.POSITIVE_INFINITY;
+            if (aDist !== bDist) return aDist - bDist;
 
             return (a.name || "").localeCompare(b.name || "");
         });
-    }, [restaurants, sortBy, showDeals, deals]);
+    }, [restaurants, showDeals, deals]);
 
     const isNearby = activeTab === "nearby";
     const headerTitle = isNearby ? "Nearby Restaurants" : "Saved Restaurants";
@@ -64,14 +61,56 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isF
                             </button>
 
                             <select
-                                id="sidebar-sort"
-                                className="sidebar-sort"
-                                aria-label="Sort restaurants"
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
+                                className="sidebar-rating-filter"
+                                aria-label="Minimum rating"
+                                value={minRating}
+                                onChange={(e) => onMinRatingChange(Number(e.target.value))}
                             >
-                                <option value="distance">Distance</option>
+                                <option value={0}>Rating</option>
+                                <option value={3}>3+ ★</option>
+                                <option value={3.5}>3.5+ ★</option>
+                                <option value={4}>4+ ★</option>
+                                <option value={4.5}>4.5+ ★</option>
                             </select>
+
+                            <select
+                                className="sidebar-price-filter"
+                                aria-label="Price range"
+                                value={priceFilter}
+                                onChange={(e) => onPriceFilterChange(e.target.value)}
+                            >
+                                <option value="">Price</option>
+                                <option value="$">$</option>
+                                <option value="$$">$$</option>
+                                <option value="$$$">$$$</option>
+                                <option value="$$$$">$$$$</option>
+                            </select>
+
+                            <select
+                                className="sidebar-distance-filter"
+                                aria-label="Maximum distance"
+                                value={distanceFilter}
+                                onChange={(e) => onDistanceFilterChange(e.target.value)}
+                            >
+                                <option value="">Distance</option>
+                                <option value="1">&lt; 1 mi</option>
+                                <option value="3">&lt; 3 mi</option>
+                                <option value="5">&lt; 5 mi</option>
+                                <option value="10">&lt; 10 mi</option>
+                            </select>
+
+                            <select
+                                className="sidebar-cuisine-filter"
+                                aria-label="Cuisine type"
+                                value={cuisineFilter}
+                                onChange={(e) => onCuisineFilterChange(e.target.value)}
+                            >
+                                <option value="">Cuisine</option>
+                                {cuisineOptions.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+
                         </div>
                     )}
                 </div>
@@ -141,7 +180,11 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isF
                             })}
                         </ul>
                     ) : (
-                        <p className="sidebar-empty">No restaurants found nearby.</p>
+                        <p className="sidebar-empty">
+                            {(minRating > 0 || priceFilter || distanceFilter || cuisineFilter)
+                                ? "No restaurants match the current filters."
+                                : "No restaurants found nearby."}
+                        </p>
                     )
                 ) : (
                     !user ? (
