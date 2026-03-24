@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import "./Sidebar.css";
 
-function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user }) {
+function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user, minRating = 0, onMinRatingChange, priceFilter = "", onPriceFilterChange, distanceFilter = "", onDistanceFilterChange }) {
     const [sortBy, setSortBy] = useState("distance");
     const [showDeals, setShowDeals] = useState(true);
     const [activeTab, setActiveTab] = useState("nearby");
@@ -62,6 +62,45 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isF
                             >
                                 Deals
                             </button>
+
+                            <select
+                                className="sidebar-rating-filter"
+                                aria-label="Minimum rating"
+                                value={minRating}
+                                onChange={(e) => onMinRatingChange(Number(e.target.value))}
+                            >
+                                <option value={0}>Rating</option>
+                                <option value={3}>3+ ★</option>
+                                <option value={3.5}>3.5+ ★</option>
+                                <option value={4}>4+ ★</option>
+                                <option value={4.5}>4.5+ ★</option>
+                            </select>
+
+                            <select
+                                className="sidebar-price-filter"
+                                aria-label="Price range"
+                                value={priceFilter}
+                                onChange={(e) => onPriceFilterChange(e.target.value)}
+                            >
+                                <option value="">Price</option>
+                                <option value="$">$</option>
+                                <option value="$$">$$</option>
+                                <option value="$$$">$$$</option>
+                                <option value="$$$$">$$$$</option>
+                            </select>
+
+                            <select
+                                className="sidebar-distance-filter"
+                                aria-label="Maximum distance"
+                                value={distanceFilter}
+                                onChange={(e) => onDistanceFilterChange(e.target.value)}
+                            >
+                                <option value="">Distance</option>
+                                <option value="1">&lt; 1 mi</option>
+                                <option value="3">&lt; 3 mi</option>
+                                <option value="5">&lt; 5 mi</option>
+                                <option value="10">&lt; 10 mi</option>
+                            </select>
 
                             <select
                                 id="sidebar-sort"
