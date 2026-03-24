@@ -82,6 +82,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mapType, setMapType] = useState("roadmap");
   const [minRating, setMinRating] = useState(0);
+  const [priceFilter, setPriceFilter] = useState("");
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -351,9 +352,21 @@ function App() {
   }, [restaurants, currentPosition]);
 
   const filteredRestaurants = useMemo(() => {
-    if (minRating === 0) return restaurantsWithDistance;
-    return restaurantsWithDistance.filter(r => r.rating && r.rating >= minRating);
-  }, [restaurantsWithDistance, minRating]);
+    const priceCeilings = { "$": 15, "$$": 30, "$$$": 60, "$$$$": Infinity };
+    return restaurantsWithDistance.filter(r => {
+      if (minRating > 0 && !(r.rating && r.rating >= minRating)) return false;
+      if (priceFilter && priceCeilings[priceFilter] !== undefined) {
+        if (r.price_range) {
+          const maxPrice = r.price_range[1];
+          const ceiling = priceCeilings[priceFilter];
+          const floor = priceFilter === "$" ? 0 : priceFilter === "$$" ? 15 : priceFilter === "$$$" ? 30 : 60;
+          if (maxPrice > ceiling || maxPrice <= floor) return false;
+        }
+        // Restaurants without price data still shown (graceful handling)
+      }
+      return true;
+    });
+  }, [restaurantsWithDistance, minRating, priceFilter]);
 
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
@@ -420,6 +433,8 @@ function App() {
         user={user}
         minRating={minRating}
         onMinRatingChange={setMinRating}
+        priceFilter={priceFilter}
+        onPriceFilterChange={setPriceFilter}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}

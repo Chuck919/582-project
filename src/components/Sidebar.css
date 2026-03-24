@@ -125,7 +125,8 @@
   color: white;
 }
 
-.sidebar-rating-filter {
+.sidebar-rating-filter,
+.sidebar-price-filter {
   border: 1px solid #dbe4f0;
   border-radius: 8px;
   padding: 6px 8px;
