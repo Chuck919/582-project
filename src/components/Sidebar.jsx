@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import "./Sidebar.css";
 
-function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user, minRating = 0, onMinRatingChange, priceFilter = "", onPriceFilterChange }) {
+function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user, minRating = 0, onMinRatingChange, priceFilter = "", onPriceFilterChange, distanceFilter = "", onDistanceFilterChange }) {
     const [sortBy, setSortBy] = useState("distance");
     const [showDeals, setShowDeals] = useState(true);
     const [activeTab, setActiveTab] = useState("nearby");
@@ -87,6 +87,19 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isF
                                 <option value="$$">$$</option>
                                 <option value="$$$">$$$</option>
                                 <option value="$$$$">$$$$</option>
+                            </select>
+
+                            <select
+                                className="sidebar-distance-filter"
+                                aria-label="Maximum distance"
+                                value={distanceFilter}
+                                onChange={(e) => onDistanceFilterChange(e.target.value)}
+                            >
+                                <option value="">Distance</option>
+                                <option value="1">&lt; 1 mi</option>
+                                <option value="3">&lt; 3 mi</option>
+                                <option value="5">&lt; 5 mi</option>
+                                <option value="10">&lt; 10 mi</option>
                             </select>
 
                             <select

@@ -126,7 +126,8 @@
 }
 
 .sidebar-rating-filter,
-.sidebar-price-filter {
+.sidebar-price-filter,
+.sidebar-distance-filter {
   border: 1px solid #dbe4f0;
   border-radius: 8px;
   padding: 6px 8px;
