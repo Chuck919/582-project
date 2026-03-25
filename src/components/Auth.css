@@ -183,8 +183,9 @@
 .auth-header-wrap {
   pointer-events: auto;
   display: flex;
-  gap: 8px;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 
 .auth-header-btn {
@@ -235,4 +236,16 @@
 .auth-header-btn:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px #00509D;
+}
+
+@media (max-width: 768px) {
+  .auth-header-btn {
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+  }
+
+  .auth-header-user {
+    max-width: 120px;
+    font-size: 0.8125rem;
+  }
 }

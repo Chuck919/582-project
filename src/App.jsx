@@ -439,17 +439,9 @@ function App() {
         ))}
       </div>
 
-      <div style={{
-        position: "absolute",
-        top: "10px",
-        right: "10px",
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-      }}>
+      <div className="app-top-right">
         <AuthHeader onOpenProfile={() => setShowProfile(true)} />
-        <div className="restaurants-found-badge">
+        <div className="app-count-badge">
           Restaurants found: {restaurants.length}
         </div>
       </div>
