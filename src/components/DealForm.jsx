@@ -94,7 +94,14 @@ export default function DealForm({ restaurantId = "", onSuccess, onError }) {
       </div>
       {error && <div className="deal-error">{error}</div>}
       <button type="submit" className="deal-btn" disabled={submitting}>
-        {submitting ? "Submitting…" : "Submit Deal"}
+        {submitting ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+            <div className="loading-spinner small" style={{ borderColor: "rgba(255,255,255,0.4)", borderTopColor: "#fff" }}></div>
+            Submitting…
+          </div>
+        ) : (
+          "Submit Deal"
+        )}
       </button>
     </form>
   );

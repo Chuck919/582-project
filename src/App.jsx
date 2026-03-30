@@ -406,6 +406,7 @@ function App() {
       message="The Google Maps service could not be loaded. Please check your internet connection and try again."
     />
   );
+  if (loading) return <LoadingScreen message="Starting up..." />;
   if (!isLoaded) return <LoadingScreen message="Loading map..." />;
   if (locationError) return <ErrorScreen title="Location Unavailable" message={locationError} />;
   if (!currentPosition) return <LoadingScreen message="Getting your location..." />;

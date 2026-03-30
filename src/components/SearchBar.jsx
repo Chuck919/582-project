@@ -95,8 +95,11 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyResta
             aria-autocomplete="list"
             aria-controls="search-dropdown"
             autoComplete="off"
+            style={{ paddingRight: isSearching ? "36px" : undefined }}
           />
-          {query && (
+          {isSearching ? (
+            <div className="search-spinner"></div>
+          ) : query ? (
             <button
               type="button"
               className="search-clear-button"
@@ -105,7 +108,7 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyResta
             >
               &times;
             </button>
-          )}
+          ) : null}
         </div>
         <button
           type="submit"
@@ -170,8 +173,6 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyResta
           )}
         </div>
       )}
-
-      {isSearching && <div className="search-loading">Searching…</div>}
     </div>
   );
 }
