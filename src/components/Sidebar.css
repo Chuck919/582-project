@@ -125,15 +125,8 @@
   color: white;
 }
 
-.sidebar-rating-filter {
-  border: 1px solid #dbe4f0;
-  border-radius: 8px;
-  padding: 6px 8px;
-  font-size: 12px;
-  color: #1e293b;
-  background: #fff;
-}
-
+.sidebar-rating-filter,
+.sidebar-price-filter,
 .sidebar-sort {
   border: 1px solid #dbe4f0;
   border-radius: 8px;

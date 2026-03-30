@@ -59,6 +59,9 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded, isFavori
         )}
 
         <p>Rating: {restaurant.rating || "N/A"}</p>
+        {restaurant.price_range && (
+          <p>Price: ${restaurant.price_range[0].toFixed(0)} – ${restaurant.price_range[1].toFixed(0)}</p>
+        )}
         <p>Cuisine: {cuisineLabel}</p>
 
         <div className="deal-form-section">
