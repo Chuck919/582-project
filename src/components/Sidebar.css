@@ -98,6 +98,12 @@
   flex-wrap: wrap;
 }
 
+.sidebar-sort-label {
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 600;
+}
+
 .sidebar-deals-btn {
   background: #fff;
   color: #003f88;
@@ -122,7 +128,8 @@
 .sidebar-rating-filter,
 .sidebar-price-filter,
 .sidebar-distance-filter,
-.sidebar-cuisine-filter {
+.sidebar-cuisine-filter,
+.sidebar-sort {
   border: 1px solid #dbe4f0;
   border-radius: 8px;
   padding: 6px 8px;
