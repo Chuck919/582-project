@@ -7,6 +7,7 @@ import { useFavorites } from "./hooks/useFavorites";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
+import LoadingScreen from "./components/LoadingScreen";
 import UserProfile from "./components/UserProfile";
 import "./App.css";
 import SearchBar from "./components/SearchBar";
@@ -65,7 +66,7 @@ function fuzzyMatch(query, name) {
 
 function App() {
   const { user, profile, loading } = useAuth();
-  const { isFavorite, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError } = useFavorites();
+  const { isFavorite, isFavoriteLoading, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError } = useFavorites();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
@@ -81,6 +82,13 @@ function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mapType, setMapType] = useState("roadmap");
+  const [isFetchingRestaurants, setIsFetchingRestaurants] = useState(false);
+  const [isFetchingDeals, setIsFetchingDeals] = useState(false);
+  const [isSearchingSearchbar, setIsSearchingSearchbar] = useState(false);
+  const [minRating, setMinRating] = useState(0);
+  const [priceFilter, setPriceFilter] = useState("");
+  const [distanceFilter, setDistanceFilter] = useState("");
+  const [cuisineFilter, setCuisineFilter] = useState("");
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -132,6 +140,7 @@ function App() {
   // Fetch deals from Supabase and update state.
   // Also refreshes has_active_deals from DB so markers stay in sync (e.g. after adding a deal).
   const refreshDeals = useCallback(async () => {
+    setIsFetchingDeals(true);
     try {
       const dealsByRestaurant = await fetchDeals();
       setDeals(dealsByRestaurant);
@@ -152,6 +161,8 @@ function App() {
     } catch (err) {
       console.error('Error fetching deals:', err);
       setDealsError('Failed to load deals. Please try again later.');
+    } finally {
+      setIsFetchingDeals(false);
     }
   }, [restaurants]);
 
@@ -244,6 +255,7 @@ function App() {
 
       console.log("Making Places API request:", request);
 
+      setIsFetchingRestaurants(true);
       // Use the new searchNearby method
       window.google.maps.places.Place.searchNearby(request)
         .then(response => {
@@ -290,6 +302,9 @@ function App() {
             : "No internet connection. Restaurant data could not be loaded.";
           setPlacesError(message);
           setHasSearched(true);
+        })
+        .finally(() => {
+          setIsFetchingRestaurants(false);
         });
     }
   }, [map, currentPosition, hasSearched, loading, searchRadius]);
@@ -297,6 +312,8 @@ function App() {
   useEffect(() => {
     queueMicrotask(() => {
       setHasSearched(false);
+      setPriceFilter("");
+      setMinRating(0);
     });
   }, [searchRadius]);
 
@@ -349,6 +366,36 @@ function App() {
     });
   }, [restaurants, currentPosition]);
 
+  const cuisineOptions = useMemo(() => {
+    const set = new Set();
+    restaurants.forEach((r) => {
+      if (Array.isArray(r.cuisine)) {
+        r.cuisine.forEach((c) => set.add(c));
+      }
+    });
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [restaurants]);
+
+  const filteredRestaurants = useMemo(() => {
+    const priceCeilings = { "$": 15, "$$": 30, "$$$": 60, "$$$$": Infinity };
+    const priceFloors   = { "$": 0,  "$$": 15, "$$$": 30, "$$$$": 60 };
+    return restaurantsWithDistance.filter(r => {
+      if (minRating > 0 && !(r.rating && r.rating >= minRating)) return false;
+      if (priceFilter && priceCeilings[priceFilter] !== undefined) {
+        if (!r.price_range) return false;
+        const maxPrice = r.price_range[1];
+        const ceiling = priceCeilings[priceFilter];
+        const floor = priceFloors[priceFilter];
+        if (maxPrice > ceiling || maxPrice <= floor) return false;
+      }
+      if (distanceFilter && r.distanceMiles != null) {
+        if (r.distanceMiles > Number(distanceFilter)) return false;
+      }
+      if (cuisineFilter && !(Array.isArray(r.cuisine) && r.cuisine.includes(cuisineFilter))) return false;
+      return true;
+    });
+  }, [restaurantsWithDistance, minRating, priceFilter, distanceFilter, cuisineFilter]);
+
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
   };
@@ -361,8 +408,15 @@ function App() {
     (rawQuery) => {
       const query = sanitize(rawQuery);
       if (!query) return;
-      const filtered = restaurants.filter((r) => fuzzyMatch(query, r.name));
-      setSearchResults(filtered);
+      
+      setIsSearchingSearchbar(true);
+      
+      // Simulate slight delay to show search state 
+      setTimeout(() => {
+        const filtered = restaurants.filter((r) => fuzzyMatch(query, r.name));
+        setSearchResults(filtered);
+        setIsSearchingSearchbar(false);
+      }, 300);
     },
     [restaurants]
   );
@@ -388,9 +442,10 @@ function App() {
       message="The Google Maps service could not be loaded. Please check your internet connection and try again."
     />
   );
-  if (!isLoaded) return <ErrorScreen message="Loading map..." />;
+  if (loading) return <LoadingScreen message="Starting up..." />;
+  if (!isLoaded) return <LoadingScreen message="Loading map..." />;
   if (locationError) return <ErrorScreen title="Location Unavailable" message={locationError} />;
-  if (!currentPosition) return <ErrorScreen message="Getting your location..." />;
+  if (!currentPosition) return <LoadingScreen message="Getting your location..." />;
 
   return (
     <>
@@ -398,20 +453,31 @@ function App() {
       <SearchBar
         onSearch={handleSearch}
         results={searchResults}
+        isSearching={isSearchingSearchbar}
         onResultSelect={handleResultSelect}
         currentPosition={currentPosition}
         nearbyRestaurants={restaurants}
       />
 
       <Sidebar
-        restaurants={restaurantsWithDistance}
+        restaurants={filteredRestaurants}
         onRestaurantSelect={handleResultSelect}
         deals={deals}
         isOpen={sidebarOpen}
         onToggle={handleSidebarToggle}
         isFavorite={isFavorite}
+        isFavoriteLoading={isFavoriteLoading}
         favoriteRestaurants={favoriteRestaurants}
         user={user}
+        minRating={minRating}
+        onMinRatingChange={setMinRating}
+        priceFilter={priceFilter}
+        onPriceFilterChange={setPriceFilter}
+        distanceFilter={distanceFilter}
+        onDistanceFilterChange={setDistanceFilter}
+        cuisineFilter={cuisineFilter}
+        onCuisineFilterChange={setCuisineFilter}
+        cuisineOptions={cuisineOptions}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}
@@ -443,6 +509,9 @@ function App() {
         <AuthHeader onOpenProfile={() => setShowProfile(true)} />
         <div className="app-count-badge">
           Restaurants found: {restaurants.length}
+          {(isFetchingRestaurants || isFetchingDeals) && (
+            <div className="data-spinner" aria-label="Updating data..." title="Updating data..."></div>
+          )}
         </div>
       </div>
       {locationWarning && (
@@ -486,7 +555,7 @@ function App() {
       
       {/* Restaurant markers component */}
       <RestaurantMarkers
-        restaurants={restaurantsWithDistance}
+        restaurants={filteredRestaurants}
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
@@ -494,6 +563,7 @@ function App() {
         hasActiveDealsByPlaceId={hasActiveDealsByPlaceId}
         refreshDeals={refreshDeals}
         isFavorite={isFavorite}
+        isFavoriteLoading={isFavoriteLoading}
         toggleFavorite={toggleFavorite}
       />
     </GoogleMap>

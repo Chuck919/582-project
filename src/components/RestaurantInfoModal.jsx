@@ -12,7 +12,7 @@ function formatDate(dateString) {
   });
 }
 
-function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded, isFavorite, toggleFavorite }) {
+function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded, isFavorite, isFavoriteLoading, toggleFavorite }) {
   const { user } = useAuth();
   const [toggleError, setToggleError] = useState(null);
 
@@ -23,6 +23,7 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded, isFavori
     : "N/A";
 
   const favorited = isFavorite?.(restaurant.place_id);
+  const isLoading = isFavoriteLoading?.(restaurant.place_id);
 
   async function handleToggleFavorite() {
     setToggleError(null);
@@ -46,9 +47,18 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded, isFavori
             <button
               className={`favorite-btn${favorited ? " favorite-btn--active" : ""}`}
               onClick={handleToggleFavorite}
+              disabled={isLoading}
               aria-label={favorited ? "Remove from favorites" : "Save as favorite"}
+              style={{ opacity: isLoading ? 0.6 : 1, cursor: isLoading ? "not-allowed" : "pointer" }}
             >
-              {favorited ? "★ Saved" : "☆ Save"}
+              {isLoading ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                  <div className="loading-spinner small" style={{ borderColor: "rgba(0,0,0,0.1)", borderTopColor: favorited ? "#d32f2f" : "#00509d", width: "14px", height: "14px", borderWidth: "2px" }}></div>
+                  Saving...
+                </div>
+              ) : (
+                favorited ? "★ Saved" : "☆ Save"
+              )}
             </button>
             {toggleError && (
               <p className="favorite-error" role="alert">{toggleError}</p>
@@ -59,6 +69,9 @@ function RestaurantInfoModal({ restaurant, onClose, deals, onDealAdded, isFavori
         )}
 
         <p>Rating: {restaurant.rating || "N/A"}</p>
+        {restaurant.price_range && (
+          <p>Price: ${restaurant.price_range[0].toFixed(0)} – ${restaurant.price_range[1].toFixed(0)}</p>
+        )}
         <p>Cuisine: {cuisineLabel}</p>
 
         <div className="deal-form-section">

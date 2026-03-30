@@ -218,9 +218,14 @@ export default function UserProfile({ onClose }) {
             </div>
           </div>
 
-          {saveState === "saving" && <p className="profile-email">Saving profile...</p>}
-          {saveState === "saved" && !saveError && <p className="profile-email">Profile saved across devices.</p>}
-          {saveError && <p className="profile-email">{saveError}</p>}
+          {saveState === "saving" && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "12px" }}>
+              <div className="loading-spinner small"></div>
+              <span className="profile-email" style={{ margin: 0 }}>Saving profile...</span>
+            </div>
+          )}
+          {saveState === "saved" && !saveError && <p className="profile-email" style={{ marginTop: "12px" }}>Profile saved across devices.</p>}
+          {saveError && <p className="profile-email" style={{ marginTop: "12px" }}>{saveError}</p>}
 
         </div>
       </div>

@@ -10,6 +10,7 @@ export default function SignUp({ onClose, onSwitchToLogin }) {
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [showCheckEmail, setShowCheckEmail] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,17 +23,22 @@ export default function SignUp({ onClose, onSwitchToLogin }) {
       return;
     }
     setErrors({});
+    setIsSubmitting(true);
 
-    const { data, error } = await signUp(email.trim(), password, { username: username.trim() || undefined });
-    if (error) {
-      setSubmitError(error.message || "Sign up failed.");
-      return;
+    try {
+      const { data, error } = await signUp(email.trim(), password, { username: username.trim() || undefined });
+      if (error) {
+        setSubmitError(error.message || "Sign up failed.");
+        return;
+      }
+      if (data?.user) {
+        setShowCheckEmail(true);
+        return;
+      }
+      onClose?.();
+    } finally {
+      setIsSubmitting(false);
     }
-    if (data?.user) {
-      setShowCheckEmail(true);
-      return;
-    }
-    onClose?.();
   };
 
   if (showCheckEmail) {
@@ -98,8 +104,12 @@ export default function SignUp({ onClose, onSwitchToLogin }) {
           {errors.password && <span className="auth-error">{errors.password}</span>}
         </div>
         {submitError && <span className="auth-error">{submitError}</span>}
-        <button type="submit" className="auth-btn-primary">
-          Sign up
+        <button type="submit" className="auth-btn-primary" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <div className="loading-spinner small" style={{ margin: "0 auto", borderColor: "rgba(255,255,255,0.4)", borderTopColor: "#fff" }}></div>
+          ) : (
+            "Sign up"
+          )}
         </button>
         <button type="button" onClick={onSwitchToLogin} className="auth-switch">
           Already have an account? Log in
