@@ -69,11 +69,9 @@ export function useFavorites() {
 
       inFlightRef.current.add(restaurantId);
 
-      // Read current state inside the updater to avoid stale closure bugs
-      // on rapid successive clicks.
-      let isFav;
+      const isFav = favorites.has(restaurantId);
+
       setFavorites((prev) => {
-        isFav = prev.has(restaurantId);
         const next = new Set(prev);
         isFav ? next.delete(restaurantId) : next.add(restaurantId);
         return next;
@@ -132,7 +130,7 @@ export function useFavorites() {
         removedRestaurantsRef.current.delete(restaurantId);
       }
     },
-    [user]
+    [user, favorites]
   );
 
   const isFavorite = useCallback(
