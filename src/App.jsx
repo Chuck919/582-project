@@ -85,6 +85,7 @@ function App() {
   const [isFetchingRestaurants, setIsFetchingRestaurants] = useState(false);
   const [isFetchingDeals, setIsFetchingDeals] = useState(false);
   const [isSearchingSearchbar, setIsSearchingSearchbar] = useState(false);
+  const [minRating, setMinRating] = useState(0);
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -360,6 +361,11 @@ function App() {
     });
   }, [restaurants, currentPosition]);
 
+  const filteredRestaurants = useMemo(() => {
+    if (minRating === 0) return restaurantsWithDistance;
+    return restaurantsWithDistance.filter(r => r.rating && r.rating >= minRating);
+  }, [restaurantsWithDistance, minRating]);
+
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
   };
@@ -424,7 +430,7 @@ function App() {
       />
 
       <Sidebar
-        restaurants={restaurantsWithDistance}
+        restaurants={filteredRestaurants}
         onRestaurantSelect={handleResultSelect}
         deals={deals}
         isOpen={sidebarOpen}
@@ -432,6 +438,8 @@ function App() {
         isFavorite={isFavorite}
         favoriteRestaurants={favoriteRestaurants}
         user={user}
+        minRating={minRating}
+        onMinRatingChange={setMinRating}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}
@@ -517,7 +525,7 @@ function App() {
       
       {/* Restaurant markers component */}
       <RestaurantMarkers
-        restaurants={restaurantsWithDistance}
+        restaurants={filteredRestaurants}
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
