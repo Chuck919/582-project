@@ -7,6 +7,7 @@ export function useFavorites() {
   const [favorites, setFavorites] = useState(new Set());
   const [favoriteRestaurants, setFavoriteRestaurants] = useState([]);
   const [favoritesError, setFavoritesError] = useState(null);
+  const [inFlightFavorites, setInFlightFavorites] = useState(new Set());
   const inFlightRef = useRef(new Set());
 
   useEffect(() => {
@@ -68,12 +69,11 @@ export function useFavorites() {
       if (inFlightRef.current.has(restaurantId)) return;
 
       inFlightRef.current.add(restaurantId);
+      setInFlightFavorites((prev) => new Set(prev).add(restaurantId));
 
-      // Read current state inside the updater to avoid stale closure bugs
-      // on rapid successive clicks.
-      let isFav;
+      const isFav = favorites.has(restaurantId);
+
       setFavorites((prev) => {
-        isFav = prev.has(restaurantId);
         const next = new Set(prev);
         isFav ? next.delete(restaurantId) : next.add(restaurantId);
         return next;
@@ -129,10 +129,15 @@ export function useFavorites() {
         }
       } finally {
         inFlightRef.current.delete(restaurantId);
+        setInFlightFavorites((prev) => {
+          const next = new Set(prev);
+          next.delete(restaurantId);
+          return next;
+        });
         removedRestaurantsRef.current.delete(restaurantId);
       }
     },
-    [user]
+    [user, favorites]
   );
 
   const isFavorite = useCallback(
@@ -140,5 +145,10 @@ export function useFavorites() {
     [favorites]
   );
 
-  return { isFavorite, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError: () => setFavoritesError(null) };
+  const isFavoriteLoading = useCallback(
+    (restaurantId) => inFlightFavorites.has(restaurantId),
+    [inFlightFavorites]
+  );
+
+  return { isFavorite, isFavoriteLoading, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError: () => setFavoritesError(null) };
 }

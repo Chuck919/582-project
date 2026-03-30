@@ -21,6 +21,7 @@ function Sidebar({
   cuisineOptions = [],
   onClearFilters,
 }) {
+  const [sortBy, setSortBy] = useState("distance");
   const [showDeals, setShowDeals] = useState(true);
   const [activeTab, setActiveTab] = useState("nearby");
 
@@ -120,6 +121,16 @@ function Sidebar({
                 <option value="3">&lt; 3 mi</option>
                 <option value="5">&lt; 5 mi</option>
                 <option value="10">&lt; 10 mi</option>
+              </select>
+
+              <select
+                id="sidebar-sort"
+                className="sidebar-sort"
+                aria-label="Sort restaurants"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="distance">Distance</option>
               </select>
 
               <select

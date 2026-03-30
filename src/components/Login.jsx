@@ -8,6 +8,7 @@ export default function Login({ onClose, onSwitchToSignUp }) {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,13 +21,18 @@ export default function Login({ onClose, onSwitchToSignUp }) {
       return;
     }
     setErrors({});
+    setIsSubmitting(true);
 
-    const { error } = await signIn(email.trim(), password);
-    if (error) {
-      setSubmitError(error.message || "Login failed.");
-      return;
+    try {
+      const { error } = await signIn(email.trim(), password);
+      if (error) {
+        setSubmitError(error.message || "Login failed.");
+        return;
+      }
+      onClose?.();
+    } finally {
+      setIsSubmitting(false);
     }
-    onClose?.();
   };
 
   return (
@@ -61,8 +67,12 @@ export default function Login({ onClose, onSwitchToSignUp }) {
           {errors.password && <span className="auth-error">{errors.password}</span>}
         </div>
         {submitError && <span className="auth-error">{submitError}</span>}
-        <button type="submit" className="auth-btn-primary">
-          Log in
+        <button type="submit" className="auth-btn-primary" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <div className="loading-spinner small" style={{ margin: "0 auto", borderColor: "rgba(255,255,255,0.4)", borderTopColor: "#fff" }}></div>
+          ) : (
+            "Log in"
+          )}
         </button>
         <button type="button" onClick={onSwitchToSignUp} className="auth-switch">
           Don’t have an account? Sign up

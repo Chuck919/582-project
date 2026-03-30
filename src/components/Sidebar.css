@@ -98,6 +98,12 @@
   flex-wrap: wrap;
 }
 
+.sidebar-sort-label {
+  font-size: 12px;
+  color: #4b5563;
+  font-weight: 600;
+}
+
 .sidebar-deals-btn {
   background: #fff;
   color: #003f88;
@@ -122,7 +128,8 @@
 .sidebar-rating-filter,
 .sidebar-price-filter,
 .sidebar-distance-filter,
-.sidebar-cuisine-filter {
+.sidebar-cuisine-filter,
+.sidebar-sort {
   border: 1px solid #dbe4f0;
   border-radius: 8px;
   padding: 6px 8px;
@@ -296,7 +303,7 @@
 }
 
 /* ── Mobile: sidebar moves to bottom ───────────────────────────────── */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .sidebar {
     position: fixed;
     top: auto;
@@ -306,6 +313,7 @@
     height: auto;
     width: 100%;
     flex-direction: column-reverse;
+    box-sizing: border-box;
   }
 
   .sidebar-toggle {
@@ -330,11 +338,14 @@
 
   .sidebar-content {
     width: 100%;
-    max-width: 100%;
+    max-width: none;
+    min-width: 100%;
     max-height: 0;
     height: 50vh;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
     transition: max-height 0.25s ease;
+    box-sizing: border-box;
+    align-self: stretch;
   }
 
   .sidebar--open .sidebar-content {

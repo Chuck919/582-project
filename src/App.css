@@ -12,11 +12,54 @@
   background: #fff;
 }
 
+/* Top-right auth + count cluster */
+.app-top-right {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.app-top-right > * {
+  pointer-events: auto;
+}
+
+.app-count-badge {
+  background: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  color: #1e293b;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
 /* On mobile the sidebar slides up from the bottom, so don't shift the toggle */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .map-type-toggle {
     left: 10px !important;
     transition: none;
+  }
+
+  .map-type-toggle {
+    display: none;
+  }
+
+  .app-top-right {
+    top: 62px;
+    right: 10px;
+    left: 10px;
+    justify-content: flex-start;
+  }
+
+  .app-count-badge {
+    font-size: 13px;
+    padding: 8px 12px;
   }
 }
 
@@ -39,6 +82,14 @@
   gap: 12px;
 }
 
+@media (max-width: 768px) {
+  .places-error-banner {
+    top: 110px;
+    width: calc(100% - 20px);
+    max-width: none;
+  }
+}
+
 .places-error-banner button {
   background: none;
   border: none;
@@ -56,7 +107,22 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   color: #1e293b;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
+.data-spinner {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #00509d;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 
