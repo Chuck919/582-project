@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import "./Sidebar.css";
 
-function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user, minRating = 0, onMinRatingChange, priceFilter = "", onPriceFilterChange, distanceFilter = "", onDistanceFilterChange }) {
+function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isFavorite, favoriteRestaurants = [], user, minRating = 0, onMinRatingChange, priceFilter = "", onPriceFilterChange, distanceFilter = "", onDistanceFilterChange, cuisineFilter = "", onCuisineFilterChange, cuisineOptions = [] }) {
     const [sortBy, setSortBy] = useState("distance");
     const [showDeals, setShowDeals] = useState(true);
     const [activeTab, setActiveTab] = useState("nearby");
@@ -17,15 +17,13 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isF
                 }
             }
 
-            if (sortBy === "distance") {
-                const aDist = Number.isFinite(a.distanceMeters) ? a.distanceMeters : Number.POSITIVE_INFINITY;
-                const bDist = Number.isFinite(b.distanceMeters) ? b.distanceMeters : Number.POSITIVE_INFINITY;
-                if (aDist !== bDist) return aDist - bDist;
-            }
+            const aDist = Number.isFinite(a.distanceMeters) ? a.distanceMeters : Number.POSITIVE_INFINITY;
+            const bDist = Number.isFinite(b.distanceMeters) ? b.distanceMeters : Number.POSITIVE_INFINITY;
+            if (aDist !== bDist) return aDist - bDist;
 
             return (a.name || "").localeCompare(b.name || "");
         });
-    }, [restaurants, sortBy, showDeals, deals]);
+    }, [restaurants, showDeals, deals]);
 
     const isNearby = activeTab === "nearby";
     const headerTitle = isNearby ? "Nearby Restaurants" : "Saved Restaurants";
@@ -111,6 +109,19 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isF
                             >
                                 <option value="distance">Distance</option>
                             </select>
+
+                            <select
+                                className="sidebar-cuisine-filter"
+                                aria-label="Cuisine type"
+                                value={cuisineFilter}
+                                onChange={(e) => onCuisineFilterChange(e.target.value)}
+                            >
+                                <option value="">Cuisine</option>
+                                {cuisineOptions.map((c) => (
+                                    <option key={c} value={c}>{c}</option>
+                                ))}
+                            </select>
+
                         </div>
                     )}
                 </div>
@@ -180,7 +191,11 @@ function Sidebar({ restaurants, onRestaurantSelect, deals, isOpen, onToggle, isF
                             })}
                         </ul>
                     ) : (
-                        <p className="sidebar-empty">No restaurants found nearby.</p>
+                        <p className="sidebar-empty">
+                            {(minRating > 0 || priceFilter || distanceFilter || cuisineFilter)
+                                ? "No restaurants match the current filters."
+                                : "No restaurants found nearby."}
+                        </p>
                     )
                 ) : (
                     !user ? (

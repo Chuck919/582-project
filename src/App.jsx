@@ -88,6 +88,7 @@ function App() {
   const [minRating, setMinRating] = useState(0);
   const [priceFilter, setPriceFilter] = useState("");
   const [distanceFilter, setDistanceFilter] = useState("");
+  const [cuisineFilter, setCuisineFilter] = useState("");
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -365,6 +366,16 @@ function App() {
     });
   }, [restaurants, currentPosition]);
 
+  const cuisineOptions = useMemo(() => {
+    const set = new Set();
+    restaurants.forEach((r) => {
+      if (Array.isArray(r.cuisine)) {
+        r.cuisine.forEach((c) => set.add(c));
+      }
+    });
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [restaurants]);
+
   const filteredRestaurants = useMemo(() => {
     const priceCeilings = { "$": 15, "$$": 30, "$$$": 60, "$$$$": Infinity };
     const priceFloors   = { "$": 0,  "$$": 15, "$$$": 30, "$$$$": 60 };
@@ -380,9 +391,10 @@ function App() {
       if (distanceFilter && r.distanceMiles != null) {
         if (r.distanceMiles > Number(distanceFilter)) return false;
       }
+      if (cuisineFilter && !(Array.isArray(r.cuisine) && r.cuisine.includes(cuisineFilter))) return false;
       return true;
     });
-  }, [restaurantsWithDistance, minRating, priceFilter, distanceFilter]);
+  }, [restaurantsWithDistance, minRating, priceFilter, distanceFilter, cuisineFilter]);
 
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
@@ -463,6 +475,9 @@ function App() {
         onPriceFilterChange={setPriceFilter}
         distanceFilter={distanceFilter}
         onDistanceFilterChange={setDistanceFilter}
+        cuisineFilter={cuisineFilter}
+        onCuisineFilterChange={setCuisineFilter}
+        cuisineOptions={cuisineOptions}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}
