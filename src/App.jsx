@@ -87,6 +87,7 @@ function App() {
   const [isSearchingSearchbar, setIsSearchingSearchbar] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [priceFilter, setPriceFilter] = useState("");
+  const [distanceFilter, setDistanceFilter] = useState("");
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -376,9 +377,12 @@ function App() {
         const floor = priceFloors[priceFilter];
         if (maxPrice > ceiling || maxPrice <= floor) return false;
       }
+      if (distanceFilter && r.distanceMiles != null) {
+        if (r.distanceMiles > Number(distanceFilter)) return false;
+      }
       return true;
     });
-  }, [restaurantsWithDistance, minRating, priceFilter]);
+  }, [restaurantsWithDistance, minRating, priceFilter, distanceFilter]);
 
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
@@ -457,6 +461,8 @@ function App() {
         onMinRatingChange={setMinRating}
         priceFilter={priceFilter}
         onPriceFilterChange={setPriceFilter}
+        distanceFilter={distanceFilter}
+        onDistanceFilterChange={setDistanceFilter}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}
