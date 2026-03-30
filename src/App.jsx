@@ -299,6 +299,8 @@ function App() {
   useEffect(() => {
     queueMicrotask(() => {
       setHasSearched(false);
+      setPriceFilter("");
+      setMinRating(0);
     });
   }, [searchRadius]);
 
@@ -353,16 +355,15 @@ function App() {
 
   const filteredRestaurants = useMemo(() => {
     const priceCeilings = { "$": 15, "$$": 30, "$$$": 60, "$$$$": Infinity };
+    const priceFloors   = { "$": 0,  "$$": 15, "$$$": 30, "$$$$": 60 };
     return restaurantsWithDistance.filter(r => {
       if (minRating > 0 && !(r.rating && r.rating >= minRating)) return false;
       if (priceFilter && priceCeilings[priceFilter] !== undefined) {
-        if (r.price_range) {
-          const maxPrice = r.price_range[1];
-          const ceiling = priceCeilings[priceFilter];
-          const floor = priceFilter === "$" ? 0 : priceFilter === "$$" ? 15 : priceFilter === "$$$" ? 30 : 60;
-          if (maxPrice > ceiling || maxPrice <= floor) return false;
-        }
-        // Restaurants without price data still shown (graceful handling)
+        if (!r.price_range) return false;
+        const maxPrice = r.price_range[1];
+        const ceiling = priceCeilings[priceFilter];
+        const floor = priceFloors[priceFilter];
+        if (maxPrice > ceiling || maxPrice <= floor) return false;
       }
       return true;
     });
