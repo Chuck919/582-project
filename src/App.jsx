@@ -12,6 +12,10 @@ import UserProfile from "./components/UserProfile";
 import "./App.css";
 import SearchBar from "./components/SearchBar";
 import Sidebar from "./components/Sidebar";
+import {
+  readSessionRestaurantFilters,
+  SESSION_RESTAURANT_FILTERS_KEY,
+} from "./utils/sessionRestaurantFilters";
 
 const containerStyle = {
   width: "100vw",
@@ -64,6 +68,21 @@ function fuzzyMatch(query, name) {
   );
 }
 
+const getInitialSessionFilters = (() => {
+  let cached;
+  return () => {
+    if (cached === undefined) {
+      cached = readSessionRestaurantFilters() ?? {
+        minRating: 0,
+        priceFilter: "",
+        distanceFilter: "",
+        cuisineFilter: "",
+      };
+    }
+    return cached;
+  };
+})();
+
 function App() {
   const { user, profile, loading } = useAuth();
   const { isFavorite, isFavoriteLoading, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError } = useFavorites();
@@ -85,16 +104,36 @@ function App() {
   const [isFetchingRestaurants, setIsFetchingRestaurants] = useState(false);
   const [isFetchingDeals, setIsFetchingDeals] = useState(false);
   const [isSearchingSearchbar, setIsSearchingSearchbar] = useState(false);
-  const [minRating, setMinRating] = useState(0);
-  const [priceFilter, setPriceFilter] = useState("");
-  const [distanceFilter, setDistanceFilter] = useState("");
-  const [cuisineFilter, setCuisineFilter] = useState("");
+  const [minRating, setMinRating] = useState(() => getInitialSessionFilters().minRating);
+  const [priceFilter, setPriceFilter] = useState(() => getInitialSessionFilters().priceFilter);
+  const [distanceFilter, setDistanceFilter] = useState(() => getInitialSessionFilters().distanceFilter);
+  const [cuisineFilter, setCuisineFilter] = useState(() => getInitialSessionFilters().cuisineFilter);
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
   });
   const searchRadius = profile.searchRadius;
+
+  useEffect(() => {
+    const isDefault =
+      minRating === 0 && priceFilter === "" && distanceFilter === "" && cuisineFilter === "";
+    if (isDefault) {
+      sessionStorage.removeItem(SESSION_RESTAURANT_FILTERS_KEY);
+    } else {
+      sessionStorage.setItem(
+        SESSION_RESTAURANT_FILTERS_KEY,
+        JSON.stringify({ minRating, priceFilter, distanceFilter, cuisineFilter })
+      );
+    }
+  }, [minRating, priceFilter, distanceFilter, cuisineFilter]);
+
+  const clearRestaurantFilters = useCallback(() => {
+    setMinRating(0);
+    setPriceFilter("");
+    setDistanceFilter("");
+    setCuisineFilter("");
+  }, []);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -376,6 +415,13 @@ function App() {
     return [...set].sort((a, b) => a.localeCompare(b));
   }, [restaurants]);
 
+  useEffect(() => {
+    if (!cuisineFilter) return;
+    if (cuisineOptions.length > 0 && !cuisineOptions.includes(cuisineFilter)) {
+      setCuisineFilter("");
+    }
+  }, [cuisineOptions, cuisineFilter]);
+
   const filteredRestaurants = useMemo(() => {
     const priceCeilings = { "$": 15, "$$": 30, "$$$": 60, "$$$$": Infinity };
     const priceFloors   = { "$": 0,  "$$": 15, "$$$": 30, "$$$$": 60 };
@@ -478,6 +524,7 @@ function App() {
         cuisineFilter={cuisineFilter}
         onCuisineFilterChange={setCuisineFilter}
         cuisineOptions={cuisineOptions}
+        onClearFilters={clearRestaurantFilters}
       />
 
       {/* Map/Satellite toggle — slides right when sidebar opens */}
