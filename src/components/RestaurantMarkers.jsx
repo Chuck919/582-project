@@ -11,6 +11,7 @@ import RestaurantInfoModal from "./RestaurantInfoModal";
     selectedRestaurant,
     setSelectedRestaurant,
     isFavorite,
+    isFavoriteLoading,
     toggleFavorite
   }) {
   const markersRef = useRef([]);
@@ -118,6 +119,7 @@ import RestaurantInfoModal from "./RestaurantInfoModal";
         deals={selectedRestaurant ? deals[selectedRestaurant.place_id] || [] : []}
         onDealAdded={() => refreshDeals?.()}
         isFavorite={isFavorite}
+        isFavoriteLoading={isFavoriteLoading}
         toggleFavorite={toggleFavorite}
       />
     </>

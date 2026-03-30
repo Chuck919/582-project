@@ -66,7 +66,7 @@ function fuzzyMatch(query, name) {
 
 function App() {
   const { user, profile, loading } = useAuth();
-  const { isFavorite, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError } = useFavorites();
+  const { isFavorite, isFavoriteLoading, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError } = useFavorites();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
@@ -436,6 +436,7 @@ function App() {
         isOpen={sidebarOpen}
         onToggle={handleSidebarToggle}
         isFavorite={isFavorite}
+        isFavoriteLoading={isFavoriteLoading}
         favoriteRestaurants={favoriteRestaurants}
         user={user}
         minRating={minRating}
@@ -533,6 +534,7 @@ function App() {
         hasActiveDealsByPlaceId={hasActiveDealsByPlaceId}
         refreshDeals={refreshDeals}
         isFavorite={isFavorite}
+        isFavoriteLoading={isFavoriteLoading}
         toggleFavorite={toggleFavorite}
       />
     </GoogleMap>
