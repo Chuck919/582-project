@@ -2,7 +2,18 @@ import { OverlayView } from "@react-google-maps/api";
 import { useEffect, useRef } from "react";
 import RestaurantInfoModal from "./RestaurantInfoModal";
 
-function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRestaurant, setSelectedRestaurant }) {
+  function RestaurantMarkers({
+    restaurants,
+    map,
+    deals,
+    hasActiveDealsByPlaceId,
+    refreshDeals,
+    selectedRestaurant,
+    setSelectedRestaurant,
+    isFavorite,
+    isFavoriteLoading,
+    toggleFavorite
+  }) {
   const markersRef = useRef([]);
 
   useEffect(() => {
@@ -16,17 +27,30 @@ function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRest
 
     // Create new AdvancedMarkerElements
     if (map && window.google && window.google.maps && window.google.maps.marker) {
+      const { AdvancedMarkerElement, PinElement } = window.google.maps.marker;
+
       restaurants.forEach((restaurant) => {
         try {
           const location = restaurant.geometry.location;
           const lat = typeof location.lat === 'function' ? location.lat() : location.lat;
           const lng = typeof location.lng === 'function' ? location.lng() : location.lng;
 
-          const marker = new window.google.maps.marker.AdvancedMarkerElement({
-            map: map,
+          const hasActiveDeals = !!hasActiveDealsByPlaceId?.[restaurant.place_id];
+
+          const markerOptions = {
+            map,
             position: { lat, lng },
             title: restaurant.name,
-          });
+          };
+          if (hasActiveDeals) {
+            markerOptions.content = new PinElement({
+              background: '#00509D',
+              borderColor: '#002a5c',
+              glyphColor: '#FFD500',
+            }).element;
+          }
+
+          const marker = new AdvancedMarkerElement(markerOptions);
 
           // Add click listener using gmp-click for AdvancedMarkerElement
           marker.addListener('gmp-click', () => {
@@ -48,7 +72,7 @@ function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRest
         }
       });
     };
-  }, [restaurants, map, setSelectedRestaurant]);
+  }, [restaurants, map, hasActiveDealsByPlaceId, setSelectedRestaurant]);
 
   const handleCloseModal = () => {
     setSelectedRestaurant(null);
@@ -89,14 +113,14 @@ function RestaurantMarkers({ restaurants, map, deals, refreshDeals, selectedRest
       })}
       
       {/* Restaurant Info Modal */}
-      <RestaurantInfoModal 
-        restaurant={selectedRestaurant} 
+      <RestaurantInfoModal
+        restaurant={selectedRestaurant}
         onClose={handleCloseModal}
         deals={selectedRestaurant ? deals[selectedRestaurant.place_id] || [] : []}
-        onDealAdded={() => {
-          // child notified that a deal was inserted; refresh parent state
-          refreshDeals?.();
-        }}
+        onDealAdded={() => refreshDeals?.()}
+        isFavorite={isFavorite}
+        isFavoriteLoading={isFavoriteLoading}
+        toggleFavorite={toggleFavorite}
       />
     </>
   );

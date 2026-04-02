@@ -3,12 +3,19 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "./lib/supabase";
 import { useAuth } from "./contexts/useAuth";
 import { fetchDeals } from "./utils/deals";
+import { useFavorites } from "./hooks/useFavorites";
 import RestaurantMarkers from "./components/RestaurantMarkers";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
+import LoadingScreen from "./components/LoadingScreen";
+import UserProfile from "./components/UserProfile";
 import "./App.css";
 import SearchBar from "./components/SearchBar";
 import Sidebar from "./components/Sidebar";
+import {
+  readSessionRestaurantFilters,
+  SESSION_RESTAURANT_FILTERS_KEY,
+} from "./utils/sessionRestaurantFilters";
 
 const containerStyle = {
   width: "100vw",
@@ -61,26 +68,72 @@ function fuzzyMatch(query, name) {
   );
 }
 
+const getInitialSessionFilters = (() => {
+  let cached;
+  return () => {
+    if (cached === undefined) {
+      cached = readSessionRestaurantFilters() ?? {
+        minRating: 0,
+        priceFilter: "",
+        distanceFilter: "",
+        cuisineFilter: "",
+      };
+    }
+    return cached;
+  };
+})();
+
 function App() {
-  const { user } = useAuth();
+  const { user, profile, loading } = useAuth();
+  const { isFavorite, isFavoriteLoading, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError } = useFavorites();
   const [currentPosition, setCurrentPosition] = useState(null);
   const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
   const [dealsError, setDealsError] = useState(null);
+  const [hasActiveDealsByPlaceId, setHasActiveDealsByPlaceId] = useState({});
   const [map, setMap] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false); // Prevent multiple API calls
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [locationWarning, setLocationWarning] = useState(null);
   const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mapType, setMapType] = useState("roadmap");
+  const [isFetchingRestaurants, setIsFetchingRestaurants] = useState(false);
+  const [isFetchingDeals, setIsFetchingDeals] = useState(false);
+  const [isSearchingSearchbar, setIsSearchingSearchbar] = useState(false);
+  const [minRating, setMinRating] = useState(() => getInitialSessionFilters().minRating);
+  const [priceFilter, setPriceFilter] = useState(() => getInitialSessionFilters().priceFilter);
+  const [distanceFilter, setDistanceFilter] = useState(() => getInitialSessionFilters().distanceFilter);
+  const [cuisineFilter, setCuisineFilter] = useState(() => getInitialSessionFilters().cuisineFilter);
   const userMarkerRef = useRef(null);
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries,
   });
+  const searchRadius = profile.searchRadius;
+
+  useEffect(() => {
+    const isDefault =
+      minRating === 0 && priceFilter === "" && distanceFilter === "" && cuisineFilter === "";
+    if (isDefault) {
+      sessionStorage.removeItem(SESSION_RESTAURANT_FILTERS_KEY);
+    } else {
+      sessionStorage.setItem(
+        SESSION_RESTAURANT_FILTERS_KEY,
+        JSON.stringify({ minRating, priceFilter, distanceFilter, cuisineFilter })
+      );
+    }
+  }, [minRating, priceFilter, distanceFilter, cuisineFilter]);
+
+  const clearRestaurantFilters = useCallback(() => {
+    setMinRating(0);
+    setPriceFilter("");
+    setDistanceFilter("");
+    setCuisineFilter("");
+  }, []);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -124,20 +177,57 @@ function App() {
   }, []);
 
   // Fetch deals from Supabase and update state.
-  // Wrapped in useCallback so it can be passed as a stable prop to children.
+  // Also refreshes has_active_deals from DB so markers stay in sync (e.g. after adding a deal).
   const refreshDeals = useCallback(async () => {
+    setIsFetchingDeals(true);
     try {
       const dealsByRestaurant = await fetchDeals();
       setDeals(dealsByRestaurant);
+      const placeIds = restaurants.map((r) => r.place_id);
+      if (placeIds.length) {
+        const { data, error } = await supabase
+          .from('restaurants')
+          .select('id, has_active_deals')
+          .in('id', placeIds);
+        if (!error && data) {
+          const next = {};
+          data.forEach((row) => {
+            next[row.id] = !!row.has_active_deals;
+          });
+          setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
+        }
+      }
     } catch (err) {
       console.error('Error fetching deals:', err);
       setDealsError('Failed to load deals. Please try again later.');
+    } finally {
+      setIsFetchingDeals(false);
     }
-  }, []);
+  }, [restaurants]);
 
   useEffect(() => {
-    refreshDeals();
+    queueMicrotask(() => {
+      void refreshDeals();
+    });
   }, [refreshDeals]);
+
+  // Load has_active_deals from DB when restaurant list is first set (e.g. from cache before refreshDeals runs).
+  useEffect(() => {
+    if (!restaurants.length) return;
+    const placeIds = restaurants.map((r) => r.place_id);
+    supabase
+      .from('restaurants')
+      .select('id, has_active_deals')
+      .in('id', placeIds)
+      .then(({ data, error }) => {
+        if (error) return;
+        const next = {};
+        (data || []).forEach((row) => {
+          next[row.id] = !!row.has_active_deals;
+        });
+        setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
+      });
+  }, [restaurants]);
 
   // Create user location marker with AdvancedMarkerElement
   useEffect(() => {
@@ -172,15 +262,19 @@ function App() {
   }, [map, currentPosition]);
 
   useEffect(() => {
+    if (loading) return;
     if (map && currentPosition && !hasSearched) {
       // Check cache first
-      const cacheKey = `restaurants_${currentPosition.lat.toFixed(3)}_${currentPosition.lng.toFixed(3)}`;
+      const cacheKey = `restaurants_${currentPosition.lat.toFixed(3)}_${currentPosition.lng.toFixed(3)}_${searchRadius}`;
       const cached = sessionStorage.getItem(cacheKey);
       
       if (cached) {
         console.log("Using cached restaurant data");
-        setRestaurants(JSON.parse(cached));
-        setHasSearched(true);
+        const cachedRestaurants = JSON.parse(cached);
+        queueMicrotask(() => {
+          setRestaurants(cachedRestaurants);
+          setHasSearched(true);
+        });
         return;
       }
 
@@ -192,7 +286,7 @@ function App() {
         fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
         locationRestriction: {
           center: currentPosition,
-          radius: 10000, // 10km radius
+          radius: Math.round(searchRadius * 1609.34),
         },
         includedTypes: ["restaurant"],
         maxResultCount: 20,
@@ -200,6 +294,7 @@ function App() {
 
       console.log("Making Places API request:", request);
 
+      setIsFetchingRestaurants(true);
       // Use the new searchNearby method
       window.google.maps.places.Place.searchNearby(request)
         .then(response => {
@@ -246,9 +341,20 @@ function App() {
             : "No internet connection. Restaurant data could not be loaded.";
           setPlacesError(message);
           setHasSearched(true);
+        })
+        .finally(() => {
+          setIsFetchingRestaurants(false);
         });
     }
-  }, [map, currentPosition, hasSearched]);
+  }, [map, currentPosition, hasSearched, loading, searchRadius]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setHasSearched(false);
+      setPriceFilter("");
+      setMinRating(0);
+    });
+  }, [searchRadius]);
 
   useEffect(() => {
     if (!user || !restaurants.length) return;
@@ -299,6 +405,43 @@ function App() {
     });
   }, [restaurants, currentPosition]);
 
+  const cuisineOptions = useMemo(() => {
+    const set = new Set();
+    restaurants.forEach((r) => {
+      if (Array.isArray(r.cuisine)) {
+        r.cuisine.forEach((c) => set.add(c));
+      }
+    });
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [restaurants]);
+
+  useEffect(() => {
+    if (!cuisineFilter) return;
+    if (cuisineOptions.length > 0 && !cuisineOptions.includes(cuisineFilter)) {
+      setCuisineFilter("");
+    }
+  }, [cuisineOptions, cuisineFilter]);
+
+  const filteredRestaurants = useMemo(() => {
+    const priceCeilings = { "$": 15, "$$": 30, "$$$": 60, "$$$$": Infinity };
+    const priceFloors   = { "$": 0,  "$$": 15, "$$$": 30, "$$$$": 60 };
+    return restaurantsWithDistance.filter(r => {
+      if (minRating > 0 && !(r.rating && r.rating >= minRating)) return false;
+      if (priceFilter && priceCeilings[priceFilter] !== undefined) {
+        if (!r.price_range) return false;
+        const maxPrice = r.price_range[1];
+        const ceiling = priceCeilings[priceFilter];
+        const floor = priceFloors[priceFilter];
+        if (maxPrice > ceiling || maxPrice <= floor) return false;
+      }
+      if (distanceFilter && r.distanceMiles != null) {
+        if (r.distanceMiles > Number(distanceFilter)) return false;
+      }
+      if (cuisineFilter && !(Array.isArray(r.cuisine) && r.cuisine.includes(cuisineFilter))) return false;
+      return true;
+    });
+  }, [restaurantsWithDistance, minRating, priceFilter, distanceFilter, cuisineFilter]);
+
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
   };
@@ -311,8 +454,15 @@ function App() {
     (rawQuery) => {
       const query = sanitize(rawQuery);
       if (!query) return;
-      const filtered = restaurants.filter((r) => fuzzyMatch(query, r.name));
-      setSearchResults(filtered);
+      
+      setIsSearchingSearchbar(true);
+      
+      // Simulate slight delay to show search state 
+      setTimeout(() => {
+        const filtered = restaurants.filter((r) => fuzzyMatch(query, r.name));
+        setSearchResults(filtered);
+        setIsSearchingSearchbar(false);
+      }, 300);
     },
     [restaurants]
   );
@@ -338,9 +488,10 @@ function App() {
       message="The Google Maps service could not be loaded. Please check your internet connection and try again."
     />
   );
-  if (!isLoaded) return <ErrorScreen message="Loading map..." />;
+  if (loading) return <LoadingScreen message="Starting up..." />;
+  if (!isLoaded) return <LoadingScreen message="Loading map..." />;
   if (locationError) return <ErrorScreen title="Location Unavailable" message={locationError} />;
-  if (!currentPosition) return <ErrorScreen message="Getting your location..." />;
+  if (!currentPosition) return <LoadingScreen message="Getting your location..." />;
 
   return (
     <>
@@ -348,6 +499,7 @@ function App() {
       <SearchBar
         onSearch={handleSearch}
         results={searchResults}
+        isSearching={isSearchingSearchbar}
         onResultSelect={handleResultSelect}
         currentPosition={currentPosition}
         nearbyRestaurants={restaurants}
@@ -355,11 +507,25 @@ function App() {
       />
 
       <Sidebar
-        restaurants={restaurantsWithDistance}
+        restaurants={filteredRestaurants}
         onRestaurantSelect={handleResultSelect}
         deals={deals}
         isOpen={sidebarOpen}
         onToggle={handleSidebarToggle}
+        isFavorite={isFavorite}
+        isFavoriteLoading={isFavoriteLoading}
+        favoriteRestaurants={favoriteRestaurants}
+        user={user}
+        minRating={minRating}
+        onMinRatingChange={setMinRating}
+        priceFilter={priceFilter}
+        onPriceFilterChange={setPriceFilter}
+        distanceFilter={distanceFilter}
+        onDistanceFilterChange={setDistanceFilter}
+        cuisineFilter={cuisineFilter}
+        onCuisineFilterChange={setCuisineFilter}
+        cuisineOptions={cuisineOptions}
+        onClearFilters={clearRestaurantFilters}
       />
 
       <div style={{
@@ -372,6 +538,15 @@ function App() {
         gap: "12px",
       }}>
         <AuthHeader /> 
+      
+      <div className="app-top-right">
+        <AuthHeader onOpenProfile={() => setShowProfile(true)} />
+        <div className="app-count-badge">
+          Restaurants found: {restaurants.length}
+          {(isFetchingRestaurants || isFetchingDeals) && (
+            <div className="data-spinner" aria-label="Updating data..." title="Updating data..."></div>
+          )}
+        </div>
       </div>
       {locationWarning && (
         <div className="places-error-banner">
@@ -389,6 +564,12 @@ function App() {
         <div className="places-error-banner">
           {dealsError}
           <button onClick={() => setDealsError(null)} aria-label="Dismiss">x</button>
+        </div>
+      )}
+      {favoritesError && (
+        <div className="places-error-banner">
+          {favoritesError}
+          <button onClick={dismissFavoritesError} aria-label="Dismiss">x</button>
         </div>
       )}
       <GoogleMap
@@ -409,12 +590,16 @@ function App() {
       
       {/* Restaurant markers component */}
       <RestaurantMarkers
-        restaurants={restaurantsWithDistance}
+        restaurants={filteredRestaurants}
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
         deals={deals}
+        hasActiveDealsByPlaceId={hasActiveDealsByPlaceId}
         refreshDeals={refreshDeals}
+        isFavorite={isFavorite}
+        isFavoriteLoading={isFavoriteLoading}
+        toggleFavorite={toggleFavorite}
       />
     </GoogleMap>
 
@@ -425,6 +610,11 @@ function App() {
           className="foodly-logo-image"
         />
       </div>
+    {showProfile && user && (
+      <UserProfile
+        onClose={() => setShowProfile(false)}
+      />
+    )}
     </>
   );
 }
