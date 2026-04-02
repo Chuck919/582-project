@@ -12,7 +12,7 @@ function sanitizeInput(input) {
     .trim();
 }
 
-function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyRestaurants = [] }) {
+function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyRestaurants = [], sidebarOpen = false }) {
   const [query, setQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -80,8 +80,13 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyResta
   const showSuggestions = suggestions.length > 0;
   const showResults = hasSearched && !isSearching && !showSuggestions;
 
+  const searchContainerStyle = {
+    left: sidebarOpen ? "calc(392px + 12px)" : "44px",
+    transform: "none",
+  };
+
   return (
-    <div className="search-container">
+    <div className="search-container" style={searchContainerStyle}>
       <form className="search-form" onSubmit={handleSubmit}>
         <div className="search-input-wrapper">
           <input

@@ -344,13 +344,14 @@ function App() {
 
   return (
     <>
-      {/* Search bar — centred at the top of the map */}
+      {/* Search bar — positioned relative to sidebar state */}
       <SearchBar
         onSearch={handleSearch}
         results={searchResults}
         onResultSelect={handleResultSelect}
         currentPosition={currentPosition}
         nearbyRestaurants={restaurants}
+        sidebarOpen={sidebarOpen}
       />
 
       <Sidebar
@@ -361,31 +362,6 @@ function App() {
         onToggle={handleSidebarToggle}
       />
 
-      {/* Map/Satellite toggle — slides right when sidebar opens (desktop only) */}
-      <div
-        className="map-type-toggle"
-        style={{ "--map-toggle-left": sidebarOpen ? "400px" : "42px" }}
-      >
-        {["roadmap", "satellite"].map((type) => (
-          <button
-            key={type}
-            onClick={() => setMapType(type)}
-            style={{
-              padding: "6px 12px",
-              background: mapType === type ? "#e8e8e8" : "#fff",
-              border: "none",
-              borderLeft: type === "satellite" ? "1px solid #ddd" : "none",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: mapType === type ? "600" : "400",
-              color: "#333",
-            }}
-          >
-            {type === "roadmap" ? "Map" : "Satellite"}
-          </button>
-        ))}
-      </div>
-
       <div style={{
         position: "absolute",
         top: "10px",
@@ -395,17 +371,7 @@ function App() {
         alignItems: "center",
         gap: "12px",
       }}>
-        <AuthHeader />
-        <div style={{
-          background: "white",
-          padding: "10px 14px",
-          borderRadius: "8px",
-          boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-          color: "#1e293b",
-          fontSize: "14px",
-        }}>
-          Restaurants found: {restaurants.length}
-        </div>
+        <AuthHeader /> 
       </div>
       {locationWarning && (
         <div className="places-error-banner">
@@ -435,6 +401,7 @@ function App() {
           mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
           disableDefaultUI: false,
           mapTypeControl: false,
+          fullscreenControl: false,
           mapTypeId: mapType,
         }}
       >
@@ -450,6 +417,14 @@ function App() {
         refreshDeals={refreshDeals}
       />
     </GoogleMap>
+
+      <div className="foodly-logo" aria-label="Foodly logo">
+        <img
+          src="/src/assets/main logo black.svg"
+          alt="Foodly"
+          className="foodly-logo-image"
+        />
+      </div>
     </>
   );
 }
