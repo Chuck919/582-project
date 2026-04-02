@@ -29,7 +29,6 @@ function Sidebar({
     return [...restaurants].sort((a, b) => {
       const aHasDeals = deals[a.place_id]?.length > 0;
       const bHasDeals = deals[b.place_id]?.length > 0;
-
       if (showDeals) {
         if (aHasDeals !== bHasDeals) {
           return aHasDeals ? -1 : 1;
@@ -42,7 +41,7 @@ function Sidebar({
 
       return (a.name || "").localeCompare(b.name || "");
     });
-  }, [restaurants, showDeals, deals]);
+  }, [restaurants, sortBy, showDeals, deals]);
 
   const isNearby = activeTab === "nearby";
   const headerTitle = isNearby ? "Nearby Restaurants" : "Saved Restaurants";

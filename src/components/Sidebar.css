@@ -95,6 +95,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: 10px;
   flex-wrap: wrap;
 }
 
@@ -114,6 +115,15 @@
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+}
+
+.sidebar-deals-btn:hover {
+    background: #00296b;
+    color: #fff;
+}
+.sidebar-deals-btn--active {
+  background-color: #003f88;
+  color: white;
 }
 
 .sidebar-deals-btn:hover {

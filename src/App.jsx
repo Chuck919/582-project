@@ -495,7 +495,7 @@ function App() {
 
   return (
     <>
-      {/* Search bar — centred at the top of the map */}
+      {/* Search bar — positioned relative to sidebar state */}
       <SearchBar
         onSearch={handleSearch}
         results={searchResults}
@@ -503,6 +503,7 @@ function App() {
         onResultSelect={handleResultSelect}
         currentPosition={currentPosition}
         nearbyRestaurants={restaurants}
+        sidebarOpen={sidebarOpen}
       />
 
       <Sidebar
@@ -527,31 +528,17 @@ function App() {
         onClearFilters={clearRestaurantFilters}
       />
 
-      {/* Map/Satellite toggle — slides right when sidebar opens */}
-      <div
-        className="map-type-toggle"
-        style={{ "--map-toggle-left": sidebarOpen ? "400px" : "42px" }}
-      >
-        {["roadmap", "satellite"].map((type) => (
-          <button
-            key={type}
-            onClick={() => setMapType(type)}
-            style={{
-              padding: "6px 12px",
-              background: mapType === type ? "#e8e8e8" : "#fff",
-              border: "none",
-              borderLeft: type === "satellite" ? "1px solid #ddd" : "none",
-              cursor: "pointer",
-              fontSize: "13px",
-              fontWeight: mapType === type ? "600" : "400",
-              color: "#333",
-            }}
-          >
-            {type === "roadmap" ? "Map" : "Satellite"}
-          </button>
-        ))}
-      </div>
-
+      <div style={{
+        position: "absolute",
+        top: "10px",
+        right: "10px",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+      }}>
+        <AuthHeader /> 
+      
       <div className="app-top-right">
         <AuthHeader onOpenProfile={() => setShowProfile(true)} />
         <div className="app-count-badge">
@@ -595,6 +582,7 @@ function App() {
           mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
           disableDefaultUI: false,
           mapTypeControl: false,
+          fullscreenControl: false,
           mapTypeId: mapType,
         }}
       >
@@ -615,6 +603,13 @@ function App() {
       />
     </GoogleMap>
 
+      <div className="foodly-logo" aria-label="Foodly logo">
+        <img
+          src="/src/assets/main logo black.svg"
+          alt="Foodly"
+          className="foodly-logo-image"
+        />
+      </div>
     {showProfile && user && (
       <UserProfile
         onClose={() => setShowProfile(false)}

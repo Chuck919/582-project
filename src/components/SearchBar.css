@@ -2,12 +2,20 @@
 .search-container {
   position: absolute;
   top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
   z-index: 1000;
   width: 380px;
   max-width: calc(100vw - 260px);
   font-family: "Google Sans", Roboto, Arial, sans-serif;
+  transition: left 0.25s ease;
+}
+
+@media (max-width: 900px) {
+  .search-container {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 95%;
+    max-width: 500px;
+  }
 }
 
 /* ── Form row ───────────────────────────────────────────────── */
