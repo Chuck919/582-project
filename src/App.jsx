@@ -5,6 +5,7 @@ import { useAuth } from "./contexts/useAuth";
 import { fetchDeals } from "./utils/deals";
 import { useFavorites } from "./hooks/useFavorites";
 import RestaurantMarkers from "./components/RestaurantMarkers";
+import RestaurantInfoModal from "./components/RestaurantInfoModal";
 import AuthHeader from "./components/AuthHeader";
 import ErrorScreen from "./components/ErrorScreen";
 import LoadingScreen from "./components/LoadingScreen";
@@ -351,14 +352,19 @@ function App() {
         selectedRestaurant={selectedRestaurant}
         setSelectedRestaurant={setSelectedRestaurant}
         map={map}
-        deals={deals}
         hasActiveDealsByPlaceId={hasActiveDealsByPlaceId}
-        refreshDeals={refreshDeals}
-        isFavorite={isFavorite}
-        isFavoriteLoading={isFavoriteLoading}
-        toggleFavorite={toggleFavorite}
       />
     </GoogleMap>
+
+    <RestaurantInfoModal
+      restaurant={selectedRestaurant}
+      onClose={() => setSelectedRestaurant(null)}
+      deals={selectedRestaurant ? deals[selectedRestaurant.place_id] || [] : []}
+      onDealAdded={() => refreshDeals?.()}
+      isFavorite={isFavorite}
+      isFavoriteLoading={isFavoriteLoading}
+      toggleFavorite={toggleFavorite}
+    />
 
     {showProfile && user && (
       <UserProfile
