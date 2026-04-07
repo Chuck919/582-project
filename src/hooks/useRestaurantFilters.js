@@ -24,7 +24,7 @@ const getInitialFilters = (() => {
  * Manages the four restaurant list filters, their sessionStorage persistence,
  * and the derived filteredRestaurants and cuisineOptions values.
  *
- * @param {Array} restaurantsWithDistance - Restaurant objects with distanceMeters and distanceMiles attached.
+ * @param {Array} restaurantsWithDistance - The full (unfiltered) restaurant array with distanceMeters and distanceMiles attached. Must be the complete set — this is the source of truth for cuisineOptions.
  * @returns {{
  *   filters: { minRating: number, priceFilter: string, distanceFilter: string, cuisineFilter: string },
  *   setFilter: (key: string, value: any) => void,
@@ -68,7 +68,7 @@ export function useRestaurantFilters(restaurantsWithDistance) {
   useEffect(() => {
     if (!cuisineFilter) return;
     if (cuisineOptions.length > 0 && !cuisineOptions.includes(cuisineFilter)) {
-      queueMicrotask(() => setCuisineFilter(""));
+      setCuisineFilter("");
     }
   }, [cuisineOptions, cuisineFilter]);
 
