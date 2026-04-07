@@ -17,6 +17,7 @@ import {
   SESSION_RESTAURANT_FILTERS_KEY,
 } from "./utils/sessionRestaurantFilters";
 import { fuzzyMatch } from "./utils/search";
+import { calculateDistance } from "./utils/geo";
 
 const containerStyle = {
   width: "100vw",
@@ -345,31 +346,19 @@ function App() {
 
   const restaurantsWithDistance = useMemo(() => {
     if (!currentPosition) return restaurants;
-    const toRad = (deg) => (deg * Math.PI) / 180;
-    const earthRadiusMeters = 6371000;
     return restaurants.map((restaurant) => {
       const location = restaurant.geometry?.location;
       const lat = typeof location?.lat === "function" ? location.lat() : location?.lat;
       const lng = typeof location?.lng === "function" ? location.lng() : location?.lng;
       if (typeof lat !== "number" || typeof lng !== "number") {
-        console.warn(`[restaurantsWithDistance] Missing or invalid coordinates for "${restaurant.name}" (id: ${restaurant.place_id}). location was:`, location);
+        console.warn(
+          `[restaurantsWithDistance] Missing or invalid coordinates for "${restaurant.name}" (id: ${restaurant.place_id}). location was:`,
+          location
+        );
         return { ...restaurant, distanceMeters: Number.POSITIVE_INFINITY, distanceMiles: null };
       }
-      const dLat = toRad(lat - currentPosition.lat);
-      const dLng = toRad(lng - currentPosition.lng);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(currentPosition.lat)) *
-          Math.cos(toRad(lat)) *
-          Math.sin(dLng / 2) *
-          Math.sin(dLng / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const distanceMeters = earthRadiusMeters * c;
-      return {
-        ...restaurant,
-        distanceMeters,
-        distanceMiles: distanceMeters / 1609.344,
-      };
+      const { distanceMeters, distanceMiles } = calculateDistance(currentPosition, { lat, lng });
+      return { ...restaurant, distanceMeters, distanceMiles };
     });
   }, [restaurants, currentPosition]);
 
