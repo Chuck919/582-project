@@ -14,8 +14,10 @@ import SearchBar from "./components/SearchBar";
 import Sidebar from "./components/Sidebar";
 import {
   readSessionRestaurantFilters,
+  clearSessionRestaurantFilters,
   SESSION_RESTAURANT_FILTERS_KEY,
 } from "./utils/sessionRestaurantFilters";
+import { sanitizeInput } from "./utils/validation";
 import { fuzzyMatch } from "./utils/search";
 import { calculateDistance } from "./utils/geo";
 
@@ -25,17 +27,6 @@ const containerStyle = {
 };
 
 const libraries = ["places", "marker"];
-
-/**
- * Sanitize helper — strips HTML and characters that could be used for
- * XSS or injection before sending input to the Google Places API.
- */
-function sanitize(input) {
-  return input
-    .replace(/<[^>]*>/g, "")
-    .replace(/[<>"'`;]/g, "")
-    .trim();
-}
 
 const getInitialSessionFilters = (() => {
   let cached;
@@ -88,7 +79,7 @@ function App() {
     const isDefault =
       minRating === 0 && priceFilter === "" && distanceFilter === "" && cuisineFilter === "";
     if (isDefault) {
-      sessionStorage.removeItem(SESSION_RESTAURANT_FILTERS_KEY);
+      clearSessionRestaurantFilters();
     } else {
       sessionStorage.setItem(
         SESSION_RESTAURANT_FILTERS_KEY,
@@ -409,12 +400,12 @@ function App() {
    */
   const handleSearch = useCallback(
     (rawQuery) => {
-      const query = sanitize(rawQuery);
+      const query = sanitizeInput(rawQuery);
       if (!query) return;
-      
+
       setIsSearchingSearchbar(true);
-      
-      // Simulate slight delay to show search state 
+
+      // Simulate slight delay to show search state
       setTimeout(() => {
         const filtered = restaurants.filter((r) => fuzzyMatch(query, r.name));
         setSearchResults(filtered);
