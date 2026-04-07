@@ -66,6 +66,10 @@ export function useRestaurantSearch({ map, currentPosition, searchRadius, isAuth
     setRestaurants([]);
   }, []);
 
+  const syncActiveDealFlags = useCallback((updates) => {
+    setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...updates }));
+  }, []);
+
   // Fetch from Google Places API (or sessionStorage cache)
   useEffect(() => {
     if (isAuthLoading) return;
@@ -158,7 +162,7 @@ export function useRestaurantSearch({ map, currentPosition, searchRadius, isAuth
   return {
     restaurants,
     hasActiveDealsByPlaceId,
-    setHasActiveDealsByPlaceId,
+    syncActiveDealFlags,
     isFetchingRestaurants,
     placesError,
     resetSearch,

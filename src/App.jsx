@@ -52,7 +52,7 @@ function App() {
   const {
     restaurants,
     hasActiveDealsByPlaceId,
-    setHasActiveDealsByPlaceId,
+    syncActiveDealFlags,
     isFetchingRestaurants,
     placesError,
     resetSearch,
@@ -115,10 +115,8 @@ function App() {
           .in('id', placeIds);
         if (!error && data) {
           const next = {};
-          data.forEach((row) => {
-            next[row.id] = !!row.has_active_deals;
-          });
-          setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
+          data.forEach((row) => { next[row.id] = !!row.has_active_deals; });
+          syncActiveDealFlags(next);
         }
       }
     } catch (err) {
@@ -127,7 +125,7 @@ function App() {
     } finally {
       setIsFetchingDeals(false);
     }
-  }, [restaurants, setHasActiveDealsByPlaceId]);
+  }, [restaurants, syncActiveDealFlags]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -167,14 +165,6 @@ function App() {
     };
   }, [map, currentPosition]);
 
-  useEffect(() => {
-    queueMicrotask(() => {
-      resetSearch();
-      setFilter("priceFilter", "");
-      setFilter("minRating", 0);
-    });
-  }, [searchRadius, resetSearch, setFilter]);
-
   const restaurantsWithDistance = useMemo(() => {
     if (!currentPosition) return restaurants;
     return restaurants.map((restaurant) => {
@@ -194,6 +184,14 @@ function App() {
   }, [restaurants, currentPosition]);
 
   const { filters, setFilter, clearFilters, filteredRestaurants, cuisineOptions } = useRestaurantFilters(restaurantsWithDistance);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      resetSearch();
+      setFilter("priceFilter", "");
+      setFilter("minRating", 0);
+    });
+  }, [searchRadius, resetSearch, setFilter]);
 
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);
