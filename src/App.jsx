@@ -36,7 +36,6 @@ function sanitize(input) {
     .trim();
 }
 
-
 const getInitialSessionFilters = (() => {
   let cached;
   return () => {
