@@ -1,0 +1,21 @@
+/* ── Design Tokens ───────────────────────────────────────────────────────
+   Single source of truth for the app's brand palette, z-index scale,
+   and shared UI values. Import this file once (via index.css) and
+   reference these variables throughout all component CSS files.
+   ────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Brand blue palette */
+  --color-brand-900: #00296B;   /* darkest – hover states, headings */
+  --color-brand-700: #003F88;   /* primary – buttons, sidebar, badges */
+  --color-brand-500: #00509D;   /* medium  – focus rings, links */
+
+  /* Accent / highlight */
+  --color-accent:       #FDC500; /* gold – active deals badge, avatar bg */
+  --color-accent-dark:  #E6B200; /* gold hover */
+
+  /* Z-index scale */
+  --z-sidebar:    900;
+  --z-overlay:   1000;
+  --z-modal:     2000;
+}

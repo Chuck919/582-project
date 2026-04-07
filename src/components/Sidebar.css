@@ -4,7 +4,7 @@
   top: 0;
   left: 0;
   height: 100vh;
-  z-index: 900;
+  z-index: var(--z-sidebar);
   display: flex;
   flex-direction: row;
   pointer-events: none;
@@ -15,7 +15,7 @@
   pointer-events: auto;
   width: 32px;
   height: 100%;
-  background: #003f88;
+  background: var(--color-brand-700);
   color: #fff;
   border: none;
   cursor: pointer;
@@ -30,7 +30,7 @@
 }
 
 .sidebar-toggle:hover {
-  background: #00296b;
+  background: var(--color-brand-900);
 }
 
 .sidebar-toggle-icon {
@@ -106,7 +106,7 @@
 
 .sidebar-deals-btn {
   background: #fff;
-  color: #003f88;
+  color: var(--color-brand-700);
   border: 1px solid #1b1d21;
   border-radius: 8px;
   padding: 6px 12px;
@@ -117,11 +117,11 @@
 }
 
 .sidebar-deals-btn:hover {
-    background: #00296b;
+    background: var(--color-brand-900);
     color: #fff;
 }
 .sidebar-deals-btn--active {
-  background-color: #003f88;
+  background-color: var(--color-brand-700);
   color: white;
 }
 
@@ -161,11 +161,11 @@
   margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: #003f88;
+  color: var(--color-brand-700);
 }
 
 .sidebar-count {
-  background: #003f88;
+  background: var(--color-brand-700);
   color: #fff;
   font-size: 12px;
   font-weight: 600;
@@ -206,7 +206,7 @@
 }
 
 .sidebar-item-btn:focus-visible {
-  outline: 2px solid #00509d;
+  outline: 2px solid var(--color-brand-500);
   outline-offset: -2px;
 }
 
@@ -249,8 +249,8 @@
 
 .sidebar-item-deals-badge {
   display: inline-block;
-  background: #fdc500;
-  color: #003f88;
+  background: var(--color-accent);
+  color: var(--color-brand-700);
   font-size: 11px;
   font-weight: 700;
   padding: 2px 7px;
@@ -261,7 +261,7 @@
 
 /* ── Favorites indicator ────────────────────────────────────────────── */
 .sidebar-item-favorite {
-  color: #fdc500;
+  color: var(--color-accent);
   font-size: 13px;
 }
 
@@ -294,12 +294,12 @@
 }
 
 .sidebar-tab:hover {
-  color: #003f88;
+  color: var(--color-brand-700);
 }
 
 .sidebar-tab--active {
-  color: #003f88;
-  border-bottom-color: #003f88;
+  color: var(--color-brand-700);
+  border-bottom-color: var(--color-brand-700);
 }
 
 /* ── Mobile: sidebar moves to bottom ───────────────────────────────── */

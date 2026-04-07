@@ -8,7 +8,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: var(--z-overlay);
 }
 
 .modal-content {
@@ -95,7 +95,7 @@
 
 .deal-form-section h3 {
   margin-bottom: 10px;
-  color: #003F88;
+  color: var(--color-brand-700);
   font-size: 1.1rem;
 }
 
@@ -107,8 +107,8 @@
   margin: 6px 0 10px;
   padding: 5px 14px;
   background: #fff;
-  color: #003f88;
-  border: 1.5px solid #003f88;
+  color: var(--color-brand-700);
+  border: 1.5px solid var(--color-brand-700);
   border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
@@ -121,14 +121,14 @@
 }
 
 .favorite-btn--active {
-  background: #fdc500;
-  color: #003f88;
-  border-color: #fdc500;
+  background: var(--color-accent);
+  color: var(--color-brand-700);
+  border-color: var(--color-accent);
 }
 
 .favorite-btn--active:hover {
-  background: #e6b200;
-  border-color: #e6b200;
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
 }
 
 .favorite-login-hint {

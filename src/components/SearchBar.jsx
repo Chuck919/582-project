@@ -1,16 +1,6 @@
 import { useState, useRef } from "react";
+import { sanitizeInput } from "../utils/validation";
 import "./SearchBar.css";
-
-/**
- * Sanitizes user input by stripping HTML tags and characters that could
- * be used for XSS or injection attacks, then trims whitespace.
- */
-function sanitizeInput(input) {
-  return input
-    .replace(/<[^>]*>/g, "")      // strip HTML tags
-    .replace(/[<>"'`;&]/g, "")    // strip remaining dangerous chars
-    .trim();
-}
 
 function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyRestaurants = [] }) {
   const [query, setQuery] = useState("");
