@@ -548,6 +548,7 @@ function App() {
           )}
         </div>
       </div>
+      </div>
       {locationWarning && (
         <div className="places-error-banner">
           {locationWarning}
