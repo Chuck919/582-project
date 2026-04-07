@@ -1,7 +1,7 @@
 # Refactor Design — 582-project
 
 **Date:** 2026-04-07
-**Branch:** ui_polish
+**Branch:** docs/refactor
 **Goal:** Maximize architecture, readability, maintainability, and modularity scores without implementing tests.
 
 ---
