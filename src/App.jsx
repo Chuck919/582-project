@@ -13,6 +13,7 @@ import "./App.css";
 import SearchBar from "./components/SearchBar";
 import Sidebar from "./components/Sidebar";
 import { useRestaurantFilters } from "./hooks/useRestaurantFilters";
+import { useRestaurantSearch } from "./hooks/useRestaurantSearch";
 import { sanitizeInput } from "./utils/validation";
 import { fuzzyMatch } from "./utils/search";
 import { calculateDistance } from "./utils/geo";
@@ -29,21 +30,16 @@ function App() {
   const { user, profile, loading } = useAuth();
   const { isFavorite, isFavoriteLoading, toggleFavorite, favoriteRestaurants, favoritesError, dismissFavoritesError } = useFavorites();
   const [currentPosition, setCurrentPosition] = useState(null);
-  const [restaurants, setRestaurants] = useState([]);
   const [deals, setDeals] = useState({});
   const [dealsError, setDealsError] = useState(null);
-  const [hasActiveDealsByPlaceId, setHasActiveDealsByPlaceId] = useState({});
   const [map, setMap] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [locationError, setLocationError] = useState(null);
   const [locationWarning, setLocationWarning] = useState(null);
-  const [placesError, setPlacesError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [showProfile, setShowProfile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mapType, setMapType] = useState("roadmap");
-  const [isFetchingRestaurants, setIsFetchingRestaurants] = useState(false);
   const [isFetchingDeals, setIsFetchingDeals] = useState(false);
   const [isSearchingSearchbar, setIsSearchingSearchbar] = useState(false);
   const userMarkerRef = useRef(null);
@@ -53,6 +49,15 @@ function App() {
   });
   const searchRadius = profile.searchRadius;
 
+  const {
+    restaurants,
+    hasActiveDealsByPlaceId,
+    setHasActiveDealsByPlaceId,
+    isFetchingRestaurants,
+    placesError,
+    resetSearch,
+    dismissPlacesError,
+  } = useRestaurantSearch({ map, currentPosition, searchRadius, isAuthLoading: loading });
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -122,31 +127,13 @@ function App() {
     } finally {
       setIsFetchingDeals(false);
     }
-  }, [restaurants]);
+  }, [restaurants, setHasActiveDealsByPlaceId]);
 
   useEffect(() => {
     queueMicrotask(() => {
       void refreshDeals();
     });
   }, [refreshDeals]);
-
-  // Load has_active_deals from DB when restaurant list is first set (e.g. from cache before refreshDeals runs).
-  useEffect(() => {
-    if (!restaurants.length) return;
-    const placeIds = restaurants.map((r) => r.place_id);
-    supabase
-      .from('restaurants')
-      .select('id, has_active_deals')
-      .in('id', placeIds)
-      .then(({ data, error }) => {
-        if (error) return;
-        const next = {};
-        (data || []).forEach((row) => {
-          next[row.id] = !!row.has_active_deals;
-        });
-        setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
-      });
-  }, [restaurants]);
 
   // Create user location marker with AdvancedMarkerElement
   useEffect(() => {
@@ -181,118 +168,12 @@ function App() {
   }, [map, currentPosition]);
 
   useEffect(() => {
-    if (loading) return;
-    if (map && currentPosition && !hasSearched) {
-      // Check cache first
-      const cacheKey = `restaurants_${currentPosition.lat.toFixed(3)}_${currentPosition.lng.toFixed(3)}_${searchRadius}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      
-      if (cached) {
-        console.log("Using cached restaurant data");
-        const cachedRestaurants = JSON.parse(cached);
-        queueMicrotask(() => {
-          setRestaurants(cachedRestaurants);
-          setHasSearched(true);
-        });
-        return;
-      }
-
-      console.log("Searching for restaurants near:", currentPosition);
-      console.log("API Key exists:", !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
-      
-      // Using new Place API instead of deprecated PlacesService
-      const request = {
-        fields: ['id', 'displayName', 'formattedAddress', 'location', 'types', 'rating', 'priceRange'],
-        locationRestriction: {
-          center: currentPosition,
-          radius: Math.round(searchRadius * 1609.34),
-        },
-        includedTypes: ["restaurant"],
-        maxResultCount: 20,
-      };
-
-      console.log("Making Places API request:", request);
-
-      setIsFetchingRestaurants(true);
-      // Use the new searchNearby method
-      window.google.maps.places.Place.searchNearby(request)
-        .then(response => {
-          console.log("Places API response:", response);
-          const { places } = response;
-          
-          if (places && places.length > 0) {
-            console.log(`Found ${places.length} restaurants`);
-            
-            // Convert new Place objects to format compatible with existing code
-            const formattedResults = places.map(place => ({
-              place_id: place.id,
-              name: place.displayName,
-              vicinity: place.formattedAddress,
-              geometry: {
-                location: {
-                  lat: place.location.lat(),
-                  lng: place.location.lng()
-                }
-              },
-              rating: place.rating,
-              cuisine: place.types?.filter(t => t.includes("_restaurant"))
-                .map(t => t.replace(/_/g, " ").split(" ")
-                  .map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")) || null,
-              price_range: place.priceRange?.startPrice && place.priceRange?.endPrice
-                ? [
-                    place.priceRange.startPrice.units + place.priceRange.startPrice.nanos / 1e9,
-                    place.priceRange.endPrice.units + place.priceRange.endPrice.nanos / 1e9,
-                  ]
-                : null
-            }));
-            
-            setRestaurants(formattedResults);
-            sessionStorage.setItem(cacheKey, JSON.stringify(formattedResults));
-          } else {
-            console.log("No restaurants found in this area");
-          }
-          setHasSearched(true);
-        })
-        .catch(error => {
-          console.error("Places API search failed:", error);
-          const message = navigator.onLine
-            ? "Could not load nearby restaurants. The map is still available."
-            : "No internet connection. Restaurant data could not be loaded.";
-          setPlacesError(message);
-          setHasSearched(true);
-        })
-        .finally(() => {
-          setIsFetchingRestaurants(false);
-        });
-    }
-  }, [map, currentPosition, hasSearched, loading, searchRadius]);
-
-  useEffect(() => {
     queueMicrotask(() => {
-      setHasSearched(false);
+      resetSearch();
       setFilter("priceFilter", "");
       setFilter("minRating", 0);
     });
-  }, [searchRadius, setFilter]);
-
-  useEffect(() => {
-    if (!user || !restaurants.length) return;
-    const rows = restaurants.map(r => ({
-      id: r.place_id,
-      name: r.name,
-      cuisine: r.cuisine,
-      rating: r.rating ?? 0,
-      price_range: r.price_range,
-      lat: r.geometry.location.lat,
-      lng: r.geometry.location.lng,
-    }));
-    supabase
-      .from("restaurants")
-      .upsert(rows, { onConflict: "id", ignoreDuplicates: true })
-      .then(({ error }) => {
-        if (error) console.error("Supabase upsert failed:", error);
-      });
-  }, [user, restaurants]);
+  }, [searchRadius, resetSearch, setFilter]);
 
   const restaurantsWithDistance = useMemo(() => {
     if (!currentPosition) return restaurants;
@@ -436,7 +317,7 @@ function App() {
       {placesError && (
         <div className="places-error-banner">
           {placesError}
-          <button onClick={() => setPlacesError(null)} aria-label="Dismiss">x</button>
+          <button onClick={dismissPlacesError} aria-label="Dismiss">x</button>
         </div>
       )}
       {dealsError && (
