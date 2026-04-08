@@ -100,6 +100,21 @@
   line-height: 1;
 }
 
+.foodly-logo {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  padding: 6px 10px;
+  pointer-events: none;
+}
+
+.foodly-logo-image {
+  display: block;
+  max-height: 90px;
+  width: auto;
+}
 .restaurants-found-badge {
   background: white;
   padding: 10px 14px;
