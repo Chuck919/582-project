@@ -527,17 +527,6 @@ function App() {
         cuisineOptions={cuisineOptions}
         onClearFilters={clearRestaurantFilters}
       />
-
-      <div style={{
-        position: "absolute",
-        top: "10px",
-        right: "10px",
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-      }}>
-        <AuthHeader /> 
       
       <div className="app-top-right">
         <AuthHeader onOpenProfile={() => setShowProfile(true)} />
@@ -548,7 +537,7 @@ function App() {
           )}
         </div>
       </div>
-      </div>
+
       {locationWarning && (
         <div className="places-error-banner">
           {locationWarning}

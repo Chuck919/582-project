@@ -80,10 +80,9 @@ function SearchBar({ onSearch, results, isSearching, onResultSelect, nearbyResta
   const showSuggestions = suggestions.length > 0;
   const showResults = hasSearched && !isSearching && !showSuggestions;
 
-  const searchContainerStyle = {
-    left: sidebarOpen ? "calc(392px + 12px)" : "44px",
-    transform: "none",
-  };
+  const searchContainerStyle = sidebarOpen
+    ? { left: "calc(392px + 12px)", transform: "none" }
+    : { left: "50%", transform: "translateX(-50%)" };
 
   return (
     <div className="search-container" style={searchContainerStyle}>
