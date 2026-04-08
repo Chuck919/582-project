@@ -95,6 +95,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-left: 10px;
   flex-wrap: wrap;
 }
 
@@ -122,6 +123,15 @@
 }
 .sidebar-deals-btn--active {
   background-color: var(--color-brand-700);
+  color: white;
+}
+
+.sidebar-deals-btn:hover {
+    background: #00296b;
+    color: #fff;
+}
+.sidebar-deals-btn--active {
+  background-color: #003f88;
   color: white;
 }
 
