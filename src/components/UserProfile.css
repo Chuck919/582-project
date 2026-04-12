@@ -1,4 +1,4 @@
-/* UserProfile – palette: #00296B, #003F88, #00509D, #FDC500, #FFD500 */
+/* UserProfile */
 
 .profile-overlay {
   position: fixed;
@@ -8,7 +8,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  z-index: 2000;
+  z-index: var(--z-modal);
   animation: profileFadeIn 0.2s ease-out;
 }
 
@@ -58,7 +58,7 @@
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #00296B;
+  color: var(--color-brand-900);
   letter-spacing: -0.02em;
 }
 
@@ -81,7 +81,7 @@
 
 .profile-close:hover {
   background: #f1f5f9;
-  color: #00296B;
+  color: var(--color-brand-900);
 }
 
 /* ── User section ───────────────────────── */
@@ -91,7 +91,7 @@
   align-items: center;
   gap: 16px;
   padding: 24px 20px;
-  background: linear-gradient(135deg, #00296B 0%, #003F88 100%);
+  background: linear-gradient(135deg, var(--color-brand-900) 0%, var(--color-brand-700) 100%);
 }
 
 .profile-user-info {
@@ -105,7 +105,7 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #FDC500;
+  color: var(--color-accent);
 }
 
 .profile-email {
@@ -135,7 +135,7 @@
   cursor: pointer;
   flex-shrink: 0;
   overflow: hidden;
-  background: #FDC500;
+  background: var(--color-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -144,7 +144,7 @@
 .profile-avatar-initials {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #00296B;
+  color: var(--color-brand-900);
   user-select: none;
 }
 
@@ -227,7 +227,7 @@
 .profile-pref-value {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #003F88;
+  color: var(--color-brand-700);
 }
 
 /* ── Range slider ───────────────────────── */
@@ -240,8 +240,8 @@
   border-radius: 3px;
   background: linear-gradient(
     to right,
-    #003F88 0%,
-    #003F88 calc((var(--val, 5) - 1) / 14 * 100%),
+    var(--color-brand-700) 0%,
+    var(--color-brand-700) calc((var(--val, 5) - 1) / 14 * 100%),
     #e2e8f0 calc((var(--val, 5) - 1) / 14 * 100%),
     #e2e8f0 100%
   );
@@ -255,7 +255,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #003F88;
+  background: var(--color-brand-700);
   border: 3px solid #fff;
   box-shadow: 0 1px 4px rgba(0, 41, 107, 0.3);
   cursor: pointer;
@@ -263,7 +263,7 @@
 }
 
 .profile-slider::-webkit-slider-thumb:hover {
-  background: #00296B;
+  background: var(--color-brand-900);
   transform: scale(1.15);
 }
 
@@ -271,7 +271,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #003F88;
+  background: var(--color-brand-700);
   border: 3px solid #fff;
   box-shadow: 0 1px 4px rgba(0, 41, 107, 0.3);
   cursor: pointer;

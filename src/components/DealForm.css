@@ -27,7 +27,7 @@
 
 .deal-input:focus {
   outline: none;
-  border-color: #00509D;
+  border-color: var(--color-brand-500);
   box-shadow: 0 0 0 3px rgba(0, 80, 157, 0.15);
 }
 
@@ -38,13 +38,13 @@
   font-size: 0.9375rem;
   font-weight: 500;
   cursor: pointer;
-  background: #003F88;
+  background: var(--color-brand-700);
   color: #fff;
   transition: background 0.15s, transform 0.05s;
 }
 
 .deal-btn:hover {
-  background: #00296B;
+  background: var(--color-brand-900);
 }
 
 .deal-btn:disabled {

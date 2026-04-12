@@ -1,4 +1,7 @@
 /* ── Map/Satellite toggle ───────────────────────────────────────────── */
+/* --map-toggle-left is set inline in App.jsx.
+   42px  = sidebar closed (toggle button width)
+   400px = sidebar open  (sidebar panel width) */
 .map-type-toggle {
   position: fixed;
   top: 10px;
@@ -129,7 +132,7 @@
 
 .data-spinner {
   border: 2px solid rgba(0, 0, 0, 0.1);
-  border-top-color: #00509d;
+  border-top-color: var(--color-brand-500);
   border-radius: 50%;
   width: 14px;
   height: 14px;

@@ -10,17 +10,12 @@ function Sidebar({
   isFavorite,
   favoriteRestaurants = [],
   user,
-  minRating = 0,
-  onMinRatingChange,
-  priceFilter = "",
-  onPriceFilterChange,
-  distanceFilter = "",
-  onDistanceFilterChange,
-  cuisineFilter = "",
-  onCuisineFilterChange,
+  filters = { minRating: 0, priceFilter: "", distanceFilter: "", cuisineFilter: "" },
+  setFilter,
   cuisineOptions = [],
   onClearFilters,
 }) {
+  const { minRating, priceFilter, distanceFilter, cuisineFilter } = filters;
   const [sortBy, setSortBy] = useState("distance");
   const [showDeals, setShowDeals] = useState(true);
   const [activeTab, setActiveTab] = useState("nearby");
@@ -87,7 +82,7 @@ function Sidebar({
                 className="sidebar-rating-filter"
                 aria-label="Minimum rating"
                 value={minRating}
-                onChange={(e) => onMinRatingChange(Number(e.target.value))}
+                onChange={(e) => setFilter("minRating", Number(e.target.value))}
               >
                 <option value={0}>Rating</option>
                 <option value={3}>3+ ★</option>
@@ -100,7 +95,7 @@ function Sidebar({
                 className="sidebar-price-filter"
                 aria-label="Price range"
                 value={priceFilter}
-                onChange={(e) => onPriceFilterChange(e.target.value)}
+                onChange={(e) => setFilter("priceFilter", e.target.value)}
               >
                 <option value="">Price</option>
                 <option value="$">$</option>
@@ -113,7 +108,7 @@ function Sidebar({
                 className="sidebar-distance-filter"
                 aria-label="Maximum distance"
                 value={distanceFilter}
-                onChange={(e) => onDistanceFilterChange(e.target.value)}
+                onChange={(e) => setFilter("distanceFilter", e.target.value)}
               >
                 <option value="">Distance</option>
                 <option value="1">&lt; 1 mi</option>
@@ -136,7 +131,7 @@ function Sidebar({
                 className="sidebar-cuisine-filter"
                 aria-label="Cuisine type"
                 value={cuisineFilter}
-                onChange={(e) => onCuisineFilterChange(e.target.value)}
+                onChange={(e) => setFilter("cuisineFilter", e.target.value)}
               >
                 <option value="">Cuisine</option>
                 {cuisineOptions.map((c) => (
