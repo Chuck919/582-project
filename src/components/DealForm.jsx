@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createDeal } from "../utils/deals";
 import { sanitizeInput } from "../utils/validation";
+import { useAuth } from "../contexts/useAuth";
 import "./DealForm.css";
 
 /**
@@ -14,6 +15,7 @@ import "./DealForm.css";
  * - onError(error) - callback invoked on failure.
  */
 export default function DealForm({ restaurantId = "", onSuccess, onError }) {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -35,6 +37,11 @@ export default function DealForm({ restaurantId = "", onSuccess, onError }) {
       return;
     }
 
+    if (!user) {
+      setError("You must be signed in to submit a deal.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -43,6 +50,7 @@ export default function DealForm({ restaurantId = "", onSuccess, onError }) {
         description: sanitizeInput(description),
         price: priceNum,
         restaurant_id: restaurantId,
+        user_id: user.id,
       };
       const deal = await createDeal(dealInput);
 
