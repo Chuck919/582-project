@@ -187,12 +187,9 @@ function App() {
   const { filters, setFilter, clearFilters, filteredRestaurants, cuisineOptions } = useRestaurantFilters(restaurantsWithDistance);
 
   useEffect(() => {
-    queueMicrotask(() => {
-      resetSearch();
-      setFilter("priceFilter", "");
-      setFilter("minRating", 0);
-    });
-  }, [searchRadius, resetSearch, setFilter]);
+    resetSearch();
+    clearFilters();
+  }, [searchRadius, resetSearch, clearFilters]);
 
   const onMapLoad = (mapInstance) => {
     setMap(mapInstance);

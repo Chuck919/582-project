@@ -5,6 +5,9 @@ import {
   SESSION_RESTAURANT_FILTERS_KEY,
 } from "../utils/sessionRestaurantFilters";
 
+const PRICE_CEILINGS = { "$": 15, "$$": 30, "$$$": 60, "$$$$": Infinity };
+const PRICE_FLOORS = { "$": 0, "$$": 15, "$$$": 30, "$$$$": 60 };
+
 const getInitialFilters = (() => {
   let cached;
   return () => {
@@ -90,14 +93,12 @@ export function useRestaurantFilters(restaurantsWithDistance) {
   }, []);
 
   const filteredRestaurants = useMemo(() => {
-    const priceCeilings = { "$": 15, "$$": 30, "$$$": 60, "$$$$": Infinity };
-    const priceFloors = { "$": 0, "$$": 15, "$$$": 30, "$$$$": 60 };
     return restaurantsWithDistance.filter((r) => {
       if (minRating > 0 && !(r.rating && r.rating >= minRating)) return false;
-      if (priceFilter && priceCeilings[priceFilter] !== undefined) {
+      if (priceFilter && PRICE_CEILINGS[priceFilter] !== undefined) {
         if (!r.price_range) return false;
         const maxPrice = r.price_range[1];
-        if (maxPrice > priceCeilings[priceFilter] || maxPrice <= priceFloors[priceFilter]) return false;
+        if (maxPrice > PRICE_CEILINGS[priceFilter] || maxPrice <= PRICE_FLOORS[priceFilter]) return false;
       }
       if (distanceFilter && r.distanceMiles != null) {
         if (r.distanceMiles > Number(distanceFilter)) return false;

@@ -37,6 +37,11 @@ export default function DealForm({ restaurantId = "", onSuccess, onError }) {
       return;
     }
 
+    if (!user) {
+      setError("You must be signed in to submit a deal.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {

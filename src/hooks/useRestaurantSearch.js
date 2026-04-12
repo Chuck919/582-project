@@ -46,7 +46,7 @@ function normalizePlace(place) {
  * @returns {{
  *   restaurants: Array,
  *   hasActiveDealsByPlaceId: Record<string, boolean>,
- *   setHasActiveDealsByPlaceId: Function,
+ *   syncActiveDealFlags: (updates: Record<string, boolean>) => void,
  *   isFetchingRestaurants: boolean,
  *   placesError: string|null,
  *   resetSearch: () => void,
@@ -69,6 +69,8 @@ export function useRestaurantSearch({ map, currentPosition, searchRadius, isAuth
   const syncActiveDealFlags = useCallback((updates) => {
     setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...updates }));
   }, []);
+
+  const dismissPlacesError = useCallback(() => setPlacesError(null), []);
 
   // Fetch from Google Places API (or sessionStorage cache)
   useEffect(() => {
@@ -166,6 +168,6 @@ export function useRestaurantSearch({ map, currentPosition, searchRadius, isAuth
     isFetchingRestaurants,
     placesError,
     resetSearch,
-    dismissPlacesError: () => setPlacesError(null),
+    dismissPlacesError,
   };
 }
