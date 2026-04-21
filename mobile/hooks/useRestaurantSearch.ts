@@ -187,7 +187,12 @@ export function useRestaurantSearch({
       } finally {
         setIsFetchingRestaurants(false);
       }
-    })();
+    })().catch((err) => {
+      console.error('useRestaurantSearch: unexpected error', err);
+      setPlacesError('Could not load nearby restaurants. The map is still available.');
+      setIsFetchingRestaurants(false);
+      setHasSearched(true);
+    });
   }, [currentPosition, hasSearched]);
 
   // Upsert fetched restaurants into Supabase so the DB stays in sync
