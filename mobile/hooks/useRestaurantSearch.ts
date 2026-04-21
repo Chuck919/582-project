@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
 
 const SEARCH_RADIUS_KM = 10;
 
@@ -97,9 +96,6 @@ interface UseRestaurantSearchResult {
 export function useRestaurantSearch({
   currentPosition,
 }: UseRestaurantSearchParams): UseRestaurantSearchResult {
-  // TODO(PR 4): replace with useAuth() once auth context is added
-  const user = null;
-
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isFetchingRestaurants, setIsFetchingRestaurants] = useState(false);
@@ -195,44 +191,13 @@ export function useRestaurantSearch({
     });
   }, [currentPosition, hasSearched]);
 
-  // Upsert fetched restaurants into Supabase so the DB stays in sync
-  // No-ops until PR 4 wires in auth (user is null until then)
-  useEffect(() => {
-    if (!user || !restaurants.length) return;
-    const rows = restaurants.map((r) => ({
-      id: r.place_id,
-      name: r.name,
-      cuisine: r.cuisine,
-      rating: r.rating ?? 0,
-      price_range: r.price_range,
-      lat: r.geometry.location.lat,
-      lng: r.geometry.location.lng,
-    }));
-    supabase
-      .from('restaurants')
-      .upsert(rows, { onConflict: 'id', ignoreDuplicates: true })
-      .then(({ error }) => {
-        if (error) console.error('Supabase upsert failed:', error);
-      });
-  }, [user, restaurants]);
+  // TODO(PR 4): add Supabase upsert here once auth is wired in.
+  // Concurrent Supabase network calls alongside the Places fetch trigger a
+  // Hermes 0.12.0 race in DictPropertyMap on the iOS simulator. Defer until
+  // auth lands and the hook has a single active network path.
 
-  // Load hasActiveDealsByPlaceId from DB when restaurant list changes
-  useEffect(() => {
-    if (!restaurants.length) return;
-    const placeIds = restaurants.map((r) => r.place_id);
-    supabase
-      .from('restaurants')
-      .select('id, has_active_deals')
-      .in('id', placeIds)
-      .then(({ data, error }) => {
-        if (error) return;
-        const next: Record<string, boolean> = {};
-        (data ?? []).forEach((row: { id: string; has_active_deals: boolean }) => {
-          next[row.id] = !!row.has_active_deals;
-        });
-        setHasActiveDealsByPlaceId((prev) => ({ ...prev, ...next }));
-      });
-  }, [restaurants]);
+  // TODO(PR 8): add has_active_deals lookup here once deals are seeded.
+  // Same reason as above — avoid concurrent networking TurboModule calls.
 
   return {
     restaurants,
