@@ -134,6 +134,14 @@ export function useRestaurantSearch({
         return;
       }
 
+      const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        setPlacesError('Could not load nearby restaurants. The map is still available.');
+        setHasSearched(true);
+        setIsFetchingRestaurants(false);
+        return;
+      }
+
       setIsFetchingRestaurants(true);
       try {
         const response = await fetch(
@@ -142,7 +150,7 @@ export function useRestaurantSearch({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Goog-Api-Key': process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY!,
+              'X-Goog-Api-Key': apiKey,
               'X-Goog-FieldMask':
                 'places.id,places.displayName,places.formattedAddress,places.location,places.types,places.rating,places.priceRange',
             },
@@ -172,8 +180,8 @@ export function useRestaurantSearch({
         }
         setHasSearched(true);
       } catch (err) {
-        const isNetworkError =
-          err instanceof TypeError && err.message === 'Network request failed';
+        const message = err instanceof Error ? err.message : String(err);
+        const isNetworkError = message === 'Network request failed';
         setPlacesError(
           isNetworkError
             ? 'No internet connection. Restaurant data could not be loaded.'
@@ -183,8 +191,8 @@ export function useRestaurantSearch({
       } finally {
         setIsFetchingRestaurants(false);
       }
-    })().catch((err) => {
-      console.error('useRestaurantSearch: unexpected error', err);
+    })().catch(() => {
+      // Do not log the error object — accessing err.stack crashes Hermes 0.12.0
       setPlacesError('Could not load nearby restaurants. The map is still available.');
       setIsFetchingRestaurants(false);
       setHasSearched(true);
