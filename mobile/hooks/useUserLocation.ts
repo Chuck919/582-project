@@ -35,7 +35,10 @@ export function useUserLocation(): UseUserLocationResult {
       } catch {
         setError('Unable to get your location. Showing default location.');
       }
-    })();
+    })().catch(() => {
+      // Do not log the error object — accessing err.stack crashes Hermes 0.12.0
+      setError('Unable to get your location. Showing default location.');
+    });
   }, []);
 
   return { coords, permissionStatus, error };
