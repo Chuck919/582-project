@@ -1,6 +1,9 @@
+import Constants from 'expo-constants';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { StyleSheet, View, Text } from 'react-native';
 import { useUserLocation, DEFAULT_CENTER } from '../../hooks/useUserLocation';
+
+const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
 export default function MapScreen() {
   const { coords, error } = useUserLocation();
@@ -15,7 +18,7 @@ export default function MapScreen() {
       )}
       <MapView
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
+        provider={isExpoGo ? undefined : PROVIDER_GOOGLE}
         initialRegion={{
           ...center,
           latitudeDelta: 0.05,
