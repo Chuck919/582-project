@@ -12,6 +12,7 @@ This plan sequences the 14 features into one PR per requirement, reordered for d
 - **Branch flow**: branch from latest `main` → implement → PR → review → merge → pull `main` → branch for next PR. Do not stack branches; we avoid rebase churn since reviews are serialized.
 - **Commits per PR**: multiple small commits grouped logically (e.g., "port utility", "wire into screen", "handle empty state"). No squash locally.
 - **Build workflow**: EAS dev client (`eas build --profile development`) for iOS and Android. Expo Go is insufficient because `react-native-maps` with the Google provider requires native modules.
+- **When to EAS build vs when to just start**: `npx expo start` (then press `i` for iOS simulator) is the day-to-day workflow once a dev client is installed — JS changes hot-reload instantly with no rebuild. Only run `eas build` when native code actually changes: adding or removing a native dependency, changing `app.config.js` settings that affect iOS/Android config (permissions, plugins, bundle ID), or first-time setup. A quick way to tell if a new package needs a rebuild: check if it ships an `ios/` directory or lists CocoaPods (`pod install`) in its readme — if yes, rebuild; if it's pure JS, just `npm install` and restart Metro. On the free EAS plan, builds are slow, so treat them as a once-per-PR step at most.
 - **Verification**: every PR includes a short manual test plan in the PR body. No test framework is added (matches the web app's current state).
 - **Cache migration**: web uses `sessionStorage`; mobile uses `@react-native-async-storage/async-storage` (installed in PR #1 below and reused).
 - **Port strategy**: pure-JS utilities (`src/utils/search.js`, `src/utils/geo.js`, `src/utils/deals.js`, `src/utils/validation.js`) are copied verbatim into `mobile/utils/` in the PR that first needs them. `useFavorites`, `useRestaurantFilters` are ported with storage adapter swap.
@@ -20,7 +21,7 @@ This plan sequences the 14 features into one PR per requirement, reordered for d
 
 | # | Issue | Req | Title | Depends on |
 |---|---|---|---|---|
-| 1 | #77 | 32 | Interactive map + user location | — |
+| 1 | #77 | 32 | ~~Interactive map + user location~~ ✅ PR #95 | — |
 | 2 | #78 | 33 | Fetch & display nearby restaurants | 32 |
 | 3 | #79 | 34 | Restaurant detail modal | 33 |
 | 4 | #80 | 35 | Auth (login + signup) | — |
